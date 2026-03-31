@@ -56,7 +56,12 @@ public class MainPanel extends JPanel {
         btnRecords.addActionListener(e -> contentPanel.showPage("RECORDS"));
         btnOfficialList.addActionListener(e -> contentPanel.showPage("OFFICIAL LIST"));
         btnReports.addActionListener(e -> contentPanel.showPage("REPORTS"));
-        btnLogout.addActionListener(e -> contentPanel.showPage("LOGOUT")); //show pop up of confirmation for logout
+        btnLogout.addActionListener(e -> {
+        	
+           LogoutDialog logoutDialog = new LogoutDialog(SwingUtilities.getWindowAncestor(this));
+            logoutDialog.setLocationRelativeTo(this); // center on main panel
+            logoutDialog.setVisible(true);
+        });
         
         // Add resize listener
         addComponentListener(new ComponentAdapter() {
