@@ -8,7 +8,6 @@
 *.ctxt
 
 # Package files
-*.jar
 *.war
 *.ear
 

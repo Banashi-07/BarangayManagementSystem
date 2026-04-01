@@ -1,17 +1,31 @@
 package UI;
 
+import UI.panels.ContentPanel;
+import UI.panels.MainPanel;
+import database.DatabaseManager;
+import database.DatabaseSeeder;
+
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 
 public class MainFrame extends JFrame {
 
     public MainFrame() {
+        // 1. Connect to database
+        DatabaseManager.connect();
+
+        // 2. Seed sample data (skips if tables already have data)
+        DatabaseSeeder.seed();
+
         setTitle("Barangay Management System");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setResizable(true);
-        setExtendedState(JFrame.MAXIMIZED_BOTH); // Start fullscreen
+        setExtendedState(JFrame.MAXIMIZED_BOTH);
         setLocationRelativeTo(null);
         setLayout(new BorderLayout());
+
         // Create main panel
         ContentPanel content = new ContentPanel();
         MainPanel header = new MainPanel(content);
@@ -19,33 +33,33 @@ public class MainFrame extends JFrame {
         setLayout(new BorderLayout());
         add(header, BorderLayout.NORTH);
         add(content, BorderLayout.CENTER);
-        
-        
+
         // Wrap in scroll pane
-      JScrollPane scrollPane = new JScrollPane(content);
+        JScrollPane scrollPane = new JScrollPane(content);
 
-     // Keep scrollbars visible
-     scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
 
-     // Customize vertical scrollbar color
-     scrollPane.getVerticalScrollBar().setUI(new javax.swing.plaf.basic.BasicScrollBarUI() {
-         @Override
-         protected void configureScrollBarColors() {
-             this.thumbColor = new Color(150, 150, 150); // green thumb
-             this.trackColor = new Color(220, 220, 220); // light gray track
-         }
-     });
+        scrollPane.getVerticalScrollBar().setUI(new javax.swing.plaf.basic.BasicScrollBarUI() {
+            @Override
+            protected void configureScrollBarColors() {
+                this.thumbColor = new Color(150, 150, 150);
+                this.trackColor = new Color(220, 220, 220);
+            }
+        });
 
-     // Increase scroll speed
-     scrollPane.getVerticalScrollBar().setUnitIncrement(30);   // mouse wheel
-     scrollPane.getVerticalScrollBar().setBlockIncrement(100); // page up/down
+        scrollPane.getVerticalScrollBar().setUnitIncrement(30);
+        scrollPane.getVerticalScrollBar().setBlockIncrement(100);
 
-        
-        
-        
-	    add(header,BorderLayout.NORTH);
-        add(scrollPane,BorderLayout.CENTER);
-        
+        add(header, BorderLayout.NORTH);
+        add(scrollPane, BorderLayout.CENTER);
+
+        addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent e) {
+                DatabaseManager.close();
+            }
+        });
+
         setVisible(true);
         pack();
     }
