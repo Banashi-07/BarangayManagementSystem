@@ -2,6 +2,7 @@ package UI.dialogs;
 
 import UI.panels.GradientPanel;
 import UI.components.OvalButton;
+import service.AddResidenceService;
 
 import javax.swing.*;
 import java.awt.*;
@@ -15,9 +16,14 @@ public class AddResidence extends JDialog {
     private JTextField textField_4;   // Purok
     private JTextField textField_5;   // Status
     private JTextField textField_6;   // House No.
+    
+    private AddResidenceService residenceService;
 
     public AddResidence(JFrame parent) {
         super(parent, "Add Residence", true); // modal dialog
+        
+        // Initialize the service
+        residenceService = new AddResidenceService();
 
         setSize(500, 500);
         setLocationRelativeTo(parent);
@@ -33,6 +39,7 @@ public class AddResidence extends JDialog {
         panel.setBounds(0, 0, 500, 473);
         contentPane.add(panel);
         panel.setLayout(null);
+        
         try {
             ImageIcon icon = new ImageIcon(
                 getClass().getResource("residencelogopng.png")
@@ -72,20 +79,45 @@ public class AddResidence extends JDialog {
         panel.add(btnAdd);
 
         btnAdd.addActionListener(e -> {
-            // SIMPLE VALIDATION
-            if (textField.getText().isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Name is required!");
+            // Get values from fields
+            String name = textField.getText().trim();
+            String age = textField_1.getText().trim();
+            String sex = textField_2.getText().trim();
+            String address = textField_3.getText().trim();
+            String purok = textField_4.getText().trim();
+            String status = textField_5.getText().trim();
+            String houseNo = textField_6.getText().trim();
+            
+            // Validate using service
+            AddResidenceService.ValidationResult validation = 
+                residenceService.validateResidence(name, age, sex, address, purok, status, houseNo);
+            
+            if (!validation.isValid()) {
+                JOptionPane.showMessageDialog(this, 
+                    "Validation Errors:\n" + validation.getErrorMessage(),
+                    "Invalid Input",
+                    JOptionPane.ERROR_MESSAGE);
                 return;
             }
-
-            // 👉 You can connect this to database later
-
-            JOptionPane.showMessageDialog(this, "Residence Added Successfully!");
-
-            dispose(); // CLOSE POPUP
+            
+            // Try to add residence
+            boolean success = residenceService.addResidence(name, age, sex, address, purok, status, houseNo);
+            
+            if (success) {
+                JOptionPane.showMessageDialog(this, 
+                    "Residence Added Successfully!", 
+                    "Success", 
+                    JOptionPane.INFORMATION_MESSAGE);
+                dispose(); // CLOSE POPUP
+            } else {
+                JOptionPane.showMessageDialog(this, 
+                    "Failed to add residence. Please check the database connection.",
+                    "Database Error",
+                    JOptionPane.ERROR_MESSAGE);
+            }
         });
     }
-
+    
     // ================= HELPER METHODS =================
     private JTextField createField(JPanel panel, int y) {
         JTextField field = new JTextField();

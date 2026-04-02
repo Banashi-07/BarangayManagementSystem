@@ -37,6 +37,9 @@ public class DatabaseManager {
             // Create tables
             createTables();
 
+            // Migrate existing database if needed (add new columns)
+            migrateDatabase();
+
         } catch (SQLException e) {
             System.err.println("Database connection error: " + e.getMessage());
             e.printStackTrace();
@@ -49,7 +52,9 @@ public class DatabaseManager {
             CREATE TABLE IF NOT EXISTS residents (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT NOT NULL,
+                sex TEXT,
                 address TEXT,
+                purok TEXT,
                 contact TEXT,
                 birthdate TEXT,
                 civil_status TEXT,
@@ -87,6 +92,47 @@ public class DatabaseManager {
             stmt.execute(createOfficialsTable);
             stmt.execute(createBlottersTable);
             System.out.println("Database tables created/verified");
+        }
+    }
+
+    // Migrate existing database to add new columns if they don't exist
+    private static void migrateDatabase() {
+        try {
+            // Check if sex column exists, if not add it
+            if (!columnExists("residents", "sex")) {
+                addColumn("residents", "sex", "TEXT");
+                System.out.println("Added 'sex' column to residents table");
+            }
+            
+            // Check if purok column exists, if not add it
+            if (!columnExists("residents", "purok")) {
+                addColumn("residents", "purok", "TEXT");
+                System.out.println("Added 'purok' column to residents table");
+            }
+        } catch (SQLException e) {
+            System.err.println("Error migrating database: " + e.getMessage());
+        }
+    }
+
+    // Helper method to check if a column exists
+    private static boolean columnExists(String tableName, String columnName) throws SQLException {
+        String sql = "PRAGMA table_info(" + tableName + ")";
+        try (Statement stmt = connection.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            while (rs.next()) {
+                if (rs.getString("name").equals(columnName)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    // Helper method to add a column to a table
+    private static void addColumn(String tableName, String columnName, String columnType) throws SQLException {
+        String sql = "ALTER TABLE " + tableName + " ADD COLUMN " + columnName + " " + columnType;
+        try (Statement stmt = connection.createStatement()) {
+            stmt.execute(sql);
         }
     }
 
@@ -135,7 +181,7 @@ public class DatabaseManager {
 
     // Get male count
     public static int getMaleCount() {
-        String sql = "SELECT COUNT(*) FROM residents WHERE civil_status LIKE '%Male%' OR civil_status = 'Male'";
+        String sql = "SELECT COUNT(*) FROM residents WHERE sex = 'Male' OR sex = 'MALE' OR sex = 'male'";
         try (Statement stmt = connection.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
             return rs.getInt(1);
@@ -147,7 +193,7 @@ public class DatabaseManager {
 
     // Get female count
     public static int getFemaleCount() {
-        String sql = "SELECT COUNT(*) FROM residents WHERE civil_status LIKE '%Female%' OR civil_status = 'Female'";
+        String sql = "SELECT COUNT(*) FROM residents WHERE sex = 'Female' OR sex = 'FEMALE' OR sex = 'female'";
         try (Statement stmt = connection.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
             return rs.getInt(1);
@@ -187,10 +233,10 @@ public class DatabaseManager {
         try (Statement stmt = connection.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
             int count = rs.getInt(1);
-            return count > 0 ? count : getTotalPopulation(); // Fallback to total population if no addresses
+            return count > 0 ? count : getTotalPopulation();
         } catch (SQLException e) {
             System.err.println("Error getting household count: " + e.getMessage());
-            return getTotalPopulation(); // Fallback to total population
+            return getTotalPopulation();
         }
     }
 
@@ -215,7 +261,7 @@ public class DatabaseManager {
         public int voterCount;
         public int householdCount;
         public int blotterCount;
-        public int pwdCount; // Placeholder for future implementation
+        public int pwdCount;
 
         @Override
         public String toString() {
@@ -231,8 +277,8 @@ public class DatabaseManager {
         String sql = """
             SELECT 
                 (SELECT COUNT(*) FROM residents) as total_population,
-                (SELECT COUNT(*) FROM residents WHERE civil_status LIKE '%Male%' OR civil_status = 'Male') as male_count,
-                (SELECT COUNT(*) FROM residents WHERE civil_status LIKE '%Female%' OR civil_status = 'Female') as female_count,
+                (SELECT COUNT(*) FROM residents WHERE sex = 'Male' OR sex = 'MALE' OR sex = 'male') as male_count,
+                (SELECT COUNT(*) FROM residents WHERE sex = 'Female' OR sex = 'FEMALE' OR sex = 'female') as female_count,
                 (SELECT COUNT(*) FROM residents WHERE birthdate <= date('now', '-60 years') AND birthdate != '' AND birthdate IS NOT NULL) as senior_count,
                 (SELECT COUNT(*) FROM residents WHERE birthdate <= date('now', '-18 years') AND birthdate != '' AND birthdate IS NOT NULL) as voter_count,
                 (SELECT COUNT(DISTINCT address) FROM residents WHERE address != '' AND address IS NOT NULL) as household_count,
@@ -251,12 +297,10 @@ public class DatabaseManager {
                 stats.householdCount = rs.getInt("household_count");
                 stats.blotterCount = rs.getInt("blotter_count");
 
-                // If no addresses found, use total population as household count
                 if (stats.householdCount == 0) {
                     stats.householdCount = stats.totalPopulation;
                 }
 
-                // PWD count placeholder (add is_pwd column to residents table later)
                 stats.pwdCount = 0;
             }
 
@@ -270,17 +314,27 @@ public class DatabaseManager {
 
     // ========== RESIDENTS CRUD OPERATIONS ==========
 
-    public static void addResident(String name, String address, String contact,
-                                   String birthdate, String civilStatus) throws SQLException {
-        String sql = "INSERT INTO residents (name, address, contact, birthdate, civil_status) VALUES (?, ?, ?, ?, ?)";
+    // Updated addResident method with sex and purok
+    public static void addResident(String name, String sex, String address, 
+                                   String purok, String contact, String birthdate, 
+                                   String civilStatus) throws SQLException {
+        String sql = "INSERT INTO residents (name, sex, address, purok, contact, birthdate, civil_status) VALUES (?, ?, ?, ?, ?, ?, ?)";
         try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
             pstmt.setString(1, name);
-            pstmt.setString(2, address);
-            pstmt.setString(3, contact);
-            pstmt.setString(4, birthdate);
-            pstmt.setString(5, civilStatus);
+            pstmt.setString(2, sex);
+            pstmt.setString(3, address);
+            pstmt.setString(4, purok);
+            pstmt.setString(5, contact);
+            pstmt.setString(6, birthdate);
+            pstmt.setString(7, civilStatus);
             pstmt.executeUpdate();
         }
+    }
+
+    // Overloaded method for backward compatibility (if needed)
+    public static void addResident(String name, String address, String contact,
+                                   String birthdate, String civilStatus) throws SQLException {
+        addResident(name, "", address, "", contact, birthdate, civilStatus);
     }
 
     public static ResultSet getAllResidents() throws SQLException {
@@ -296,18 +350,28 @@ public class DatabaseManager {
         return pstmt.executeQuery(sql);
     }
 
-    public static void updateResident(int id, String name, String address,
-                                      String contact, String birthdate, String civilStatus) throws SQLException {
-        String sql = "UPDATE residents SET name=?, address=?, contact=?, birthdate=?, civil_status=? WHERE id=?";
+    // Updated updateResident method with sex and purok
+    public static void updateResident(int id, String name, String sex, String address,
+                                      String purok, String contact, String birthdate, 
+                                      String civilStatus) throws SQLException {
+        String sql = "UPDATE residents SET name=?, sex=?, address=?, purok=?, contact=?, birthdate=?, civil_status=? WHERE id=?";
         try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
             pstmt.setString(1, name);
-            pstmt.setString(2, address);
-            pstmt.setString(3, contact);
-            pstmt.setString(4, birthdate);
-            pstmt.setString(5, civilStatus);
-            pstmt.setInt(6, id);
+            pstmt.setString(2, sex);
+            pstmt.setString(3, address);
+            pstmt.setString(4, purok);
+            pstmt.setString(5, contact);
+            pstmt.setString(6, birthdate);
+            pstmt.setString(7, civilStatus);
+            pstmt.setInt(8, id);
             pstmt.executeUpdate();
         }
+    }
+
+    // Overloaded method for backward compatibility
+    public static void updateResident(int id, String name, String address,
+                                      String contact, String birthdate, String civilStatus) throws SQLException {
+        updateResident(id, name, "", address, "", contact, birthdate, civilStatus);
     }
 
     public static void deleteResident(int id) throws SQLException {
@@ -319,10 +383,11 @@ public class DatabaseManager {
     }
 
     public static ResultSet searchResidents(String keyword) throws SQLException {
-        String sql = "SELECT * FROM residents WHERE name LIKE ? OR address LIKE ? ORDER BY id DESC";
+        String sql = "SELECT * FROM residents WHERE name LIKE ? OR address LIKE ? OR purok LIKE ? ORDER BY id DESC";
         PreparedStatement pstmt = connection.prepareStatement(sql);
         pstmt.setString(1, "%" + keyword + "%");
         pstmt.setString(2, "%" + keyword + "%");
+        pstmt.setString(3, "%" + keyword + "%");
         return pstmt.executeQuery(sql);
     }
 

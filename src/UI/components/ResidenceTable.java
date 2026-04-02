@@ -13,12 +13,9 @@ import java.util.List;
 public class ResidenceTable extends JTable {
 
     private DefaultTableModel model;
-    private HomePanel homePanel;
     
     
     public ResidenceTable(HomePanel homePanel) {
-    	
-    	this.homePanel = homePanel;
 
         // ================= MODEL =================
         model = new DefaultTableModel(

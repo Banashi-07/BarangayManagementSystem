@@ -15,7 +15,7 @@ public class ReportsPanel extends JPanel {
         setBackground(Color.WHITE);
 
         // ================= HEADER =================
-        JPanel headerPanel = new GradientPanel();
+        GradientPanel headerPanel = new GradientPanel();
         headerPanel.setLayout(new BorderLayout());
         headerPanel.setPreferredSize(new Dimension(100, 110));
 
@@ -181,20 +181,6 @@ public class ReportsPanel extends JPanel {
         return new ImageIcon(image);
     }
 
-    // ================= GRADIENT PANEL =================
-    static class GradientPanel extends JPanel {
-        @Override
-        protected void paintComponent(Graphics g) {
-            super.paintComponent(g);
-            Graphics2D g2d = (Graphics2D) g;
-            g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
-            int w = getWidth();
-            int h = getHeight();
-            Color color1 = new Color(102, 170, 51);
-            Color color2 = new Color(70, 130, 35);
-            GradientPaint gp = new GradientPaint(0, 0, color1, 0, h, color2);
-            g2d.setPaint(gp);
-            g2d.fillRect(0, 0, w, h);
-        }
-    }
+   
+    
 }

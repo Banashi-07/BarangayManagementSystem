@@ -50,15 +50,17 @@ public class ResidentDAO {
                 String name        = rs.getString("name");
                 String birthdate   = rs.getString("birthdate");
                 String address     = rs.getString("address");
+                String sex         = rs.getString("sex");        // READ DIRECTLY
+                String purok       = rs.getString("purok");      // READ DIRECTLY
                 String civilStatus = rs.getString("civil_status");
 
                 rows.add(new ResidentRow(
                         name,
                         calculateAge(birthdate),
-                        parseSex(civilStatus),
-                        address,
-                        parsePurok(address),
-                        parseStatus(civilStatus)
+                        sex != null && !sex.isEmpty() ? sex : "—",           // USE DIRECT VALUE
+                        address != null ? address : "—",
+                        purok != null && !purok.isEmpty() ? purok : "—",     // USE DIRECT VALUE
+                        civilStatus != null ? civilStatus : "—"
                 ));
             }
             rs.getStatement().close();
@@ -83,36 +85,12 @@ public class ResidentDAO {
         }
     }
 
-    /**
-     * Extracts sex from civil_status.
-     * Seeder format: "Married Male", "Single Female", etc.
-     */
-    private static String parseSex(String civilStatus) {
-        if (civilStatus == null)                return "—";
-        if (civilStatus.contains("Female"))     return "Female";
-        if (civilStatus.contains("Male"))       return "Male";
-        return "—";
-    }
-
-    /**
-     * Strips the sex word to get the marital status.
-     * e.g. "Married Male" → "Married"
-     */
-    private static String parseStatus(String civilStatus) {
-        if (civilStatus == null) return "—";
-        return civilStatus.replace("Male", "").replace("Female", "").trim();
-    }
-
-    /**
-     * Extracts purok/barangay from the address string.
-     * e.g. "123 Rizal St., Brgy. Poblacion" → "Brgy. Poblacion"
-     */
-    private static String parsePurok(String address) {
-        if (address == null) return "—";
-        int idx = address.indexOf("Brgy.");
-        return idx != -1 ? address.substring(idx).trim() : "—";
-    }
-    
+    // REMOVE or COMMENT OUT these old parsing methods since we're reading directly
+    /*
+    private static String parseSex(String civilStatus) { ... }
+    private static String parseStatus(String civilStatus) { ... }
+    private static String parsePurok(String address) { ... }
+    */
     
     public static ResidentRow getResidentByName(String nameSearch) {
         try {
@@ -126,15 +104,17 @@ public class ResidentDAO {
                 String name        = rs.getString("name");
                 String birthdate   = rs.getString("birthdate");
                 String address     = rs.getString("address");
+                String sex         = rs.getString("sex");           // READ DIRECTLY
+                String purok       = rs.getString("purok");         // READ DIRECTLY
                 String civilStatus = rs.getString("civil_status");
 
                 return new ResidentRow(
                         name,
                         calculateAge(birthdate),
-                        parseSex(civilStatus),
-                        address,
-                        parsePurok(address),
-                        parseStatus(civilStatus)
+                        sex != null && !sex.isEmpty() ? sex : "—",
+                        address != null ? address : "—",
+                        purok != null && !purok.isEmpty() ? purok : "—",
+                        civilStatus != null ? civilStatus : "—"
                 );
             }
 
@@ -147,42 +127,38 @@ public class ResidentDAO {
         return null;
     }
     
+    public static void updateResident(String name, String age, String sex, String address, String purok, String status) {
+        try {
+            Connection conn = DatabaseManager.getConnection();
+            
+            // Update all fields including sex and purok
+            String sql = "UPDATE residents SET sex=?, address=?, purok=?, civil_status=? WHERE name=?";
+            PreparedStatement ps = conn.prepareStatement(sql);
+            
+            ps.setString(1, sex);
+            ps.setString(2, address);
+            ps.setString(3, purok);
+            ps.setString(4, status);
+            ps.setString(5, name);
+            
+            ps.executeUpdate();
+            ps.close();
+            
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
     
-	    public static void updateResident(String name,String age, String sex, String address, String purok, String status) {
-			try {
-			Connection conn = DatabaseManager.getConnection();
-			
-			String civilStatus = status + " " + sex;
-			
-			String sql = "UPDATE residents SET address=?, civil_status=? WHERE name=?";
-			PreparedStatement ps = conn.prepareStatement(sql);
-			
-			ps.setString(1, address);
-			ps.setString(2, civilStatus);
-			ps.setString(3, name);
-			
-			ps.executeUpdate();
-			ps.close();
-			
-			} catch (SQLException e) {
-			e.printStackTrace();
-			}
-		}
-	    
-	    public static void deleteResident(String name) {
-	        try {
-	            Connection conn = DatabaseManager.getConnection();
-
-	            String sql = "DELETE FROM residents WHERE name=?";
-	            PreparedStatement ps = conn.prepareStatement(sql);
-	            ps.setString(1, name);
-
-	            ps.executeUpdate();
-	            ps.close();
-
-	        } catch (SQLException e) {
-	            e.printStackTrace();
-	        }
-	    }
-    
+    public static void deleteResident(String name) {
+        try {
+            Connection conn = DatabaseManager.getConnection();
+            String sql = "DELETE FROM residents WHERE name=?";
+            PreparedStatement ps = conn.prepareStatement(sql);
+            ps.setString(1, name);
+            ps.executeUpdate();
+            ps.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
 }

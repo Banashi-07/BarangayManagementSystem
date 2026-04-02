@@ -10,24 +10,23 @@ import java.awt.*;
 public class RecordsPanel extends JPanel {
     private JTextField textField_4;
     
-    
 	public RecordsPanel(HomePanel homePanel) {
 		
         setLayout(null);
         setBackground(Color.WHITE);
         setPreferredSize(new Dimension(1280, 1001));
 
-     // ===== Gradient Header Panel =====
+        // ===== Gradient Header Panel =====
         GradientPanel headPanel = new GradientPanel();
         headPanel.setBounds(0, 0, 1280, 90);
-        add(headPanel); // add to your main panel
+        add(headPanel);
         headPanel.setLayout(new BorderLayout(0, 0));
         
         JLabel lblSubtitle = new JLabel("RECORDS LIST", SwingConstants.CENTER);
         lblSubtitle.setForeground(Color.WHITE);
         lblSubtitle.setFont(new Font("Arial", Font.BOLD, 30));
         lblSubtitle.setOpaque(false);
-        headPanel.add(lblSubtitle,BorderLayout.CENTER);
+        headPanel.add(lblSubtitle, BorderLayout.CENTER);
         
         OvalPanel GreenSIdePanel = new OvalPanel();
         GreenSIdePanel.setLayout(null);
@@ -59,7 +58,6 @@ public class RecordsPanel extends JPanel {
         WhitePanel4.setBounds(20, 278, 202, 52);
         GreenSIdePanel.add(WhitePanel4);
         
-        
         JLabel lblNewLabel_1 = new JLabel("SEARCH RESIDEDENCE:");
         lblNewLabel_1.setFont(new Font("Tahoma", Font.BOLD, 14));
         lblNewLabel_1.setForeground(new Color(0, 128, 0));
@@ -75,8 +73,6 @@ public class RecordsPanel extends JPanel {
         btnAddResidence.setFont(new Font("Tahoma", Font.BOLD, 13));
         btnAddResidence.setBounds(400, 190, 181, 41);
         add(btnAddResidence);
-
-        
         
         btnAddResidence.addActionListener(e -> {
             JFrame parentFrame = (JFrame) SwingUtilities.getWindowAncestor(this);
@@ -84,12 +80,10 @@ public class RecordsPanel extends JPanel {
             dialog.setVisible(true);
         });
         
-        
-        
         OvalButton btnPrintResidence = new OvalButton("PRINT RESIDENCY");
         btnPrintResidence.setFont(new Font("Tahoma", Font.BOLD, 13));
         btnPrintResidence.setBounds(600, 190, 173, 41);
-       add(btnPrintResidence);
+        add(btnPrintResidence);
 
         OvalButton btnPrintClearance = new OvalButton("PRINT CLEARANCE");
         btnPrintClearance.setFont(new Font("Tahoma", Font.BOLD, 13));
@@ -105,15 +99,28 @@ public class RecordsPanel extends JPanel {
         tablePanel.setLayout(new BorderLayout());
         tablePanel.setBounds(341, 242, 902, 532);
         tablePanel.setBorder(BorderFactory.createLineBorder(new Color(102, 170, 51), 2));
-
         add(tablePanel);
-                                                        
-     ResidenceTable table = new ResidenceTable(homePanel);
-     tablePanel.add(table, BorderLayout.CENTER);
-     table.setShowHorizontalLines(true);
-     tablePanel.add(table.getTableHeader(), BorderLayout.NORTH);
+        
+        // Create the ResidenceTable
+        ResidenceTable table = new ResidenceTable(homePanel);
+        table.setShowHorizontalLines(true);
+        
+        // Create JScrollPane and wrap the table
+        JScrollPane scrollPane = new JScrollPane(table);
+        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        
+        // Customize the scroll pane appearance
+        scrollPane.getViewport().setBackground(Color.WHITE);
+        scrollPane.setBorder(BorderFactory.createEmptyBorder());
+        
+        // Optional: Customize the scrollbar colors to match your theme
+        JScrollBar verticalScrollBar = scrollPane.getVerticalScrollBar();
+        verticalScrollBar.setUnitIncrement(16); // Smooth scrolling
+        verticalScrollBar.setBackground(new Color(240, 240, 240));
+        verticalScrollBar.setForeground(new Color(102, 170, 51));
+        
+        // Add the scroll pane to the tablePanel instead of the table directly
+        tablePanel.add(scrollPane, BorderLayout.CENTER);
     }
-
-  
-    
 }
