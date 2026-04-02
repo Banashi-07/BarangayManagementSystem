@@ -9,9 +9,10 @@ import java.awt.*;
 
 public class RecordsPanel extends JPanel {
     private JTextField textField_4;
-
-	public RecordsPanel() {
-     
+    
+    
+	public RecordsPanel(HomePanel homePanel) {
+		
         setLayout(null);
         setBackground(Color.WHITE);
         setPreferredSize(new Dimension(1280, 1001));
@@ -107,7 +108,7 @@ public class RecordsPanel extends JPanel {
 
         add(tablePanel);
                                                         
-     ResidenceTable table = new ResidenceTable();
+     ResidenceTable table = new ResidenceTable(homePanel);
      tablePanel.add(table, BorderLayout.CENTER);
      table.setShowHorizontalLines(true);
      tablePanel.add(table.getTableHeader(), BorderLayout.NORTH);

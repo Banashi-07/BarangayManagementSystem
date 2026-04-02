@@ -305,4 +305,12 @@ public class HomePanel extends JPanel {
 
         worker.execute();
     }
+    
+    public void refreshStatistics() {
+    	 SwingUtilities.invokeLater(() -> loadStatistics());
+    }
+    
+    
+    
+    
 }

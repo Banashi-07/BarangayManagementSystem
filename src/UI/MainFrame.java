@@ -1,6 +1,7 @@
 package UI;
 
 import UI.panels.ContentPanel;
+import UI.panels.HomePanel;
 import UI.panels.MainPanel;
 import database.DatabaseManager;
 import database.DatabaseSeeder;
@@ -12,6 +13,8 @@ import java.awt.event.WindowEvent;
 
 public class MainFrame extends JFrame {
 
+	private HomePanel homePanel = new HomePanel();
+	
     public MainFrame() {
         // 1. Connect to database
         DatabaseManager.connect();
@@ -27,7 +30,7 @@ public class MainFrame extends JFrame {
         setLayout(new BorderLayout());
 
         // Create main panel
-        ContentPanel content = new ContentPanel();
+        ContentPanel content = new ContentPanel(homePanel);
         MainPanel header = new MainPanel(content);
 
         setLayout(new BorderLayout());
@@ -60,6 +63,11 @@ public class MainFrame extends JFrame {
             }
         });
 
+        SwingUtilities.invokeLater(() -> {
+            homePanel.refreshStatistics();
+        });
+        
+        
         setVisible(true);
         pack();
     }
