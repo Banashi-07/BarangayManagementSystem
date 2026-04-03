@@ -1,42 +1,58 @@
 package UI.components;
 
 import database.ResidentDAO;
+import UI.panels.HomePanel;
 
 import javax.swing.*;
 import javax.swing.table.*;
-
-import UI.panels.HomePanel;
-
 import java.awt.*;
+import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * ResidenceTable
+ * - Column 0‥5 : display data
+ * - Column 6   : ACTION buttons (renderer + editor)
+ * - Column 7   : hidden integer ID (used by ActionButtonEditor)
+ */
 public class ResidenceTable extends JTable {
 
-    private DefaultTableModel model;
-    
-    
+    private final DefaultTableModel model;
+
+    /** Parallel list that maps table row index → resident DB id */
+    private final List<Integer> rowIds = new ArrayList<>();
+
     public ResidenceTable(HomePanel homePanel) {
 
-        // ================= MODEL =================
+        // ===== MODEL (column 7 = hidden ID) =====
         model = new DefaultTableModel(
                 new Object[][]{},
-                new String[]{"NAME", "AGE", "SEX", "ADDRESS", "PUROK", "STATUS","ACTION"}
+                new String[]{"NAME", "AGE", "SEX", "ADDRESS", "PUROK", "STATUS", "ACTION", "ID"}
         ) {
-        	@Override
-        	public boolean isCellEditable(int row, int column) {
-        	    return column == 6; // Only ACTION column editable
-        	}
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return column == 6; // only ACTION column
+            }
+
+            @Override
+            public Class<?> getColumnClass(int columnIndex) {
+                return columnIndex == 7 ? Integer.class : Object.class;
+            }
         };
         setModel(model);
 
-        // ================= TABLE DESIGN =================
+        // ===== HIDE ID COLUMN =====
+        getColumnModel().getColumn(7).setMinWidth(0);
+        getColumnModel().getColumn(7).setMaxWidth(0);
+        getColumnModel().getColumn(7).setWidth(0);
+        getColumnModel().getColumn(7).setPreferredWidth(0);
+
+        // ===== TABLE STYLE =====
         setBackground(new Color(240, 255, 255));
         setRowHeight(40);
         setShowGrid(false);
-        
         setFocusable(true);
         setRowSelectionAllowed(true);
-        
         setIntercellSpacing(new Dimension(0, 8));
         setFont(new Font("Tahoma", Font.PLAIN, 12));
         setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
@@ -44,25 +60,27 @@ public class ResidenceTable extends JTable {
         getTableHeader().setReorderingAllowed(false);
         getTableHeader().setResizingAllowed(false);
 
+        // ===== COLUMN WIDTHS =====
         getColumnModel().getColumn(0).setPreferredWidth(150);
-        getColumnModel().getColumn(1).setPreferredWidth(80);
-        getColumnModel().getColumn(2).setPreferredWidth(80);
+        getColumnModel().getColumn(1).setPreferredWidth(60);
+        getColumnModel().getColumn(2).setPreferredWidth(70);
         getColumnModel().getColumn(3).setPreferredWidth(200);
-        getColumnModel().getColumn(4).setPreferredWidth(100);
-        getColumnModel().getColumn(5).setPreferredWidth(120);
-        getColumnModel().getColumn(6).setPreferredWidth(250);
-        
+        getColumnModel().getColumn(4).setPreferredWidth(90);
+        getColumnModel().getColumn(5).setPreferredWidth(110);
+        getColumnModel().getColumn(6).setPreferredWidth(220);
+
+        // ===== ACTION COLUMN =====
         getColumnModel().getColumn(6).setCellRenderer(new ActionButtonRenderer());
         getColumnModel().getColumn(6).setCellEditor(new ActionButtonEditor(new JCheckBox(), this, homePanel));
 
-        // ================= HEADER =================
+        // ===== HEADER =====
         JTableHeader header = getTableHeader();
         header.setBackground(new Color(102, 170, 51));
         header.setForeground(Color.WHITE);
         header.setFont(new Font("Arial", Font.BOLD, 14));
         header.setPreferredSize(new Dimension(100, 40));
 
-        // ================= ROW STYLE =================
+        // ===== ROW RENDERER =====
         setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
             @Override
             public Component getTableCellRendererComponent(JTable table, Object value,
@@ -70,7 +88,6 @@ public class ResidenceTable extends JTable {
                                                            int row, int column) {
                 Component c = super.getTableCellRendererComponent(
                         table, value, isSelected, hasFocus, row, column);
-
                 if (isSelected) {
                     c.setBackground(new Color(102, 170, 51));
                     c.setForeground(Color.WHITE);
@@ -81,28 +98,51 @@ public class ResidenceTable extends JTable {
                     c.setBackground(new Color(235, 235, 235));
                     c.setForeground(Color.BLACK);
                 }
-
                 setHorizontalAlignment(CENTER);
                 return c;
             }
         });
 
-        // Load data on creation
         refresh();
     }
 
     /**
-     * Clears and reloads the table from the database.
-     * Call this after any add, edit, or delete operation.
+     * Reload all rows from the database.
+     * Call after any add / edit / delete operation.
      */
     public void refresh() {
-        model.setRowCount(0);
+        loadRows(ResidentDAO.getAllResidentRows());
+    }
 
-        List<ResidentDAO.ResidentRow> rows = ResidentDAO.getAllResidentRows();
+    /**
+     * Filter rows by keyword (searches name, address, purok).
+     * Pass null or blank to show all.
+     */
+    public void search(String keyword) {
+        if (keyword == null || keyword.isBlank()) {
+            refresh();
+        } else {
+            loadRows(ResidentDAO.searchResidentRows(keyword));
+        }
+    }
+
+    /** Returns the DB primary key for the given view row. */
+    public int getResidentIdAt(int viewRow) {
+        if (viewRow < 0 || viewRow >= rowIds.size()) return -1;
+        return rowIds.get(viewRow);
+    }
+
+    // ===== private helpers =====
+
+    private void loadRows(List<ResidentDAO.ResidentRow> rows) {
+        model.setRowCount(0);
+        rowIds.clear();
+
         for (ResidentDAO.ResidentRow r : rows) {
             model.addRow(new Object[]{
-                    r.name, r.age, r.sex, r.address, r.purok, r.status, "ACTION"
+                r.name, r.age, r.sex, r.address, r.purok, r.status, "ACTION", r.id
             });
+            rowIds.add(r.id);
         }
     }
 }

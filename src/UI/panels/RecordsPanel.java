@@ -1,85 +1,79 @@
 package UI.panels;
+
 import UI.components.ResidenceTable;
 import UI.components.OvalButton;
 import UI.components.OvalPanel;
+import UI.components.PrintClearance;
+import UI.components.PrintIndigency;
 import UI.dialogs.AddResidence;
 
 import javax.swing.*;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import java.awt.*;
 
+/**
+ * RecordsPanel — shows the resident records list with search and action buttons.
+ *
+ * Fixes applied:
+ *  - Search field is now wired to ResidenceTable.search()
+ *  - Print Clearance / Print Indigency use selected row ID
+ *  - GradientPanel reference kept (assumes GradientPanel exists in this package)
+ */
 public class RecordsPanel extends JPanel {
-    private JTextField textField_4;
-    
-	public RecordsPanel(HomePanel homePanel) {
-		
+
+    private final JTextField searchField;
+    private final ResidenceTable table;
+
+    public RecordsPanel(HomePanel homePanel) {
+
         setLayout(null);
         setBackground(Color.WHITE);
         setPreferredSize(new Dimension(1280, 1001));
 
-        // ===== Gradient Header Panel =====
+        // ===== HEADER =====
         GradientPanel headPanel = new GradientPanel();
         headPanel.setBounds(0, 0, 1280, 90);
         add(headPanel);
-        headPanel.setLayout(new BorderLayout(0, 0));
-        
-        JLabel lblSubtitle = new JLabel("RECORDS LIST", SwingConstants.CENTER);
-        lblSubtitle.setForeground(Color.WHITE);
-        lblSubtitle.setFont(new Font("Arial", Font.BOLD, 30));
-        lblSubtitle.setOpaque(false);
-        headPanel.add(lblSubtitle, BorderLayout.CENTER);
-        
-        OvalPanel GreenSIdePanel = new OvalPanel();
-        GreenSIdePanel.setLayout(null);
-        GreenSIdePanel.setBackground(new Color(0, 128, 64));
-        GreenSIdePanel.setBounds(31, 254, 243, 364);
-        add(GreenSIdePanel);
-        
-        OvalPanel WhitePanel1 = new OvalPanel();
-        WhitePanel1.setLayout(null);
-        WhitePanel1.setBackground(new Color(255, 255, 255));
-        WhitePanel1.setBounds(20, 44, 202, 52);
-        GreenSIdePanel.add(WhitePanel1);
-        
-        OvalPanel WhitePanel2 = new OvalPanel();
-        WhitePanel2.setLayout(null);
-        WhitePanel2.setBackground(Color.WHITE);
-        WhitePanel2.setBounds(20, 120, 202, 52);
-        GreenSIdePanel.add(WhitePanel2);
-        
-        OvalPanel WhitePanel3 = new OvalPanel();
-        WhitePanel3.setLayout(null);
-        WhitePanel3.setBackground(Color.WHITE);
-        WhitePanel3.setBounds(20, 196, 202, 52);
-        GreenSIdePanel.add(WhitePanel3);
-        
-        OvalPanel WhitePanel4 = new OvalPanel();
-        WhitePanel4.setLayout(null);
-        WhitePanel4.setBackground(Color.WHITE);
-        WhitePanel4.setBounds(20, 278, 202, 52);
-        GreenSIdePanel.add(WhitePanel4);
-        
-        JLabel lblNewLabel_1 = new JLabel("SEARCH RESIDEDENCE:");
-        lblNewLabel_1.setFont(new Font("Tahoma", Font.BOLD, 14));
-        lblNewLabel_1.setForeground(new Color(0, 128, 0));
-        lblNewLabel_1.setHorizontalAlignment(SwingConstants.CENTER);
-        lblNewLabel_1.setBounds(264, 142, 181, 20);
-        add(lblNewLabel_1);
+        headPanel.setLayout(new BorderLayout());
 
-        textField_4 = new JTextField();
-        textField_4.setBounds(455, 137, 286, 26);
-        add(textField_4);
+        JLabel lblTitle = new JLabel("RECORDS LIST", SwingConstants.CENTER);
+        lblTitle.setForeground(Color.WHITE);
+        lblTitle.setFont(new Font("Arial", Font.BOLD, 30));
+        headPanel.add(lblTitle, BorderLayout.CENTER);
 
+        // ===== LEFT SIDE PANEL =====
+        OvalPanel greenSidePanel = new OvalPanel();
+        greenSidePanel.setLayout(null);
+        greenSidePanel.setBackground(new Color(0, 128, 64));
+        greenSidePanel.setBounds(31, 254, 243, 364);
+        add(greenSidePanel);
+
+        for (int i = 0; i < 4; i++) {
+            OvalPanel wp = new OvalPanel();
+            wp.setBackground(Color.WHITE);
+            wp.setBounds(20, 44 + i * 76, 202, 52);
+            greenSidePanel.add(wp);
+        }
+
+        // ===== SEARCH =====
+        JLabel lblSearch = new JLabel("SEARCH RESIDENCE:");
+        lblSearch.setFont(new Font("Tahoma", Font.BOLD, 14));
+        lblSearch.setForeground(new Color(0, 128, 0));
+        lblSearch.setHorizontalAlignment(SwingConstants.CENTER);
+        lblSearch.setBounds(264, 142, 181, 20);
+        add(lblSearch);
+
+        searchField = new JTextField();
+        searchField.setBounds(455, 137, 286, 26);
+        add(searchField);
+
+        // ===== BUTTONS =====
         OvalButton btnAddResidence = new OvalButton("ADD RESIDENCE");
         btnAddResidence.setFont(new Font("Tahoma", Font.BOLD, 13));
         btnAddResidence.setBounds(400, 190, 181, 41);
         add(btnAddResidence);
-        
-        btnAddResidence.addActionListener(e -> {
-            JFrame parentFrame = (JFrame) SwingUtilities.getWindowAncestor(this);
-            AddResidence dialog = new AddResidence(parentFrame);
-            dialog.setVisible(true);
-        });
-        
+
         OvalButton btnPrintResidence = new OvalButton("PRINT RESIDENCY");
         btnPrintResidence.setFont(new Font("Tahoma", Font.BOLD, 13));
         btnPrintResidence.setBounds(600, 190, 173, 41);
@@ -95,32 +89,88 @@ public class RecordsPanel extends JPanel {
         btnPrintIndigency.setBounds(1000, 190, 175, 41);
         add(btnPrintIndigency);
 
-        JPanel tablePanel = new JPanel();
-        tablePanel.setLayout(new BorderLayout());
+        // ===== TABLE =====
+        JPanel tablePanel = new JPanel(new BorderLayout());
         tablePanel.setBounds(341, 242, 902, 532);
         tablePanel.setBorder(BorderFactory.createLineBorder(new Color(102, 170, 51), 2));
         add(tablePanel);
-        
-        // Create the ResidenceTable
-        ResidenceTable table = new ResidenceTable(homePanel);
+
+        table = new ResidenceTable(homePanel);
         table.setShowHorizontalLines(true);
-        
-        // Create JScrollPane and wrap the table
+
         JScrollPane scrollPane = new JScrollPane(table);
         scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
         scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
-        
-        // Customize the scroll pane appearance
         scrollPane.getViewport().setBackground(Color.WHITE);
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
-        
-        // Optional: Customize the scrollbar colors to match your theme
-        JScrollBar verticalScrollBar = scrollPane.getVerticalScrollBar();
-        verticalScrollBar.setUnitIncrement(16); // Smooth scrolling
-        verticalScrollBar.setBackground(new Color(240, 240, 240));
-        verticalScrollBar.setForeground(new Color(102, 170, 51));
-        
-        // Add the scroll pane to the tablePanel instead of the table directly
+
+        JScrollBar vsb = scrollPane.getVerticalScrollBar();
+        vsb.setUnitIncrement(16);
+        vsb.setBackground(new Color(240, 240, 240));
+
         tablePanel.add(scrollPane, BorderLayout.CENTER);
+
+        // ===== WIRE UP EVENTS =====
+
+        // Search — live filter as user types
+        searchField.getDocument().addDocumentListener(new DocumentListener() {
+            @Override public void insertUpdate(DocumentEvent e)  { doSearch(); }
+            @Override public void removeUpdate(DocumentEvent e)  { doSearch(); }
+            @Override public void changedUpdate(DocumentEvent e) { doSearch(); }
+            private void doSearch() {
+                table.search(searchField.getText().trim());
+            }
+        });
+
+        // Add Residence
+        btnAddResidence.addActionListener(e -> {
+            JFrame parent = (JFrame) SwingUtilities.getWindowAncestor(this);
+            AddResidence dialog = new AddResidence(parent, homePanel);
+            dialog.setVisible(true);
+            // Refresh after dialog closes
+            table.refresh();
+            homePanel.refreshStatistics();
+        });
+
+        // Print Residency (placeholder — implement your own print logic)
+        btnPrintResidence.addActionListener(e -> {
+            int id = getSelectedResidentId();
+            if (id == -1) {
+                JOptionPane.showMessageDialog(this, "Please select a resident first.",
+                        "No Selection", JOptionPane.INFORMATION_MESSAGE);
+                return;
+            }
+            // TODO: implement print residency
+            JOptionPane.showMessageDialog(this, "Print Residency for ID: " + id + " (not yet implemented).");
+        });
+
+        // Print Clearance
+        btnPrintClearance.addActionListener(e -> {
+            int id = getSelectedResidentId();
+            if (id == -1) {
+                JOptionPane.showMessageDialog(this, "Please select a resident first.",
+                        "No Selection", JOptionPane.INFORMATION_MESSAGE);
+                return;
+            }
+            PrintClearance.print(id);
+        });
+
+        // Print Indigency
+        btnPrintIndigency.addActionListener(e -> {
+            int id = getSelectedResidentId();
+            if (id == -1) {
+                JOptionPane.showMessageDialog(this, "Please select a resident first.",
+                        "No Selection", JOptionPane.INFORMATION_MESSAGE);
+                return;
+            }
+            PrintIndigency.print(id);
+        });
+    }
+
+    /** Returns the DB id of the currently selected row, or -1 if nothing is selected. */
+    private int getSelectedResidentId() {
+        int row = table.getSelectedRow();
+        if (row == -1) return -1;
+        return table.getResidentIdAt(row);
     }
 }

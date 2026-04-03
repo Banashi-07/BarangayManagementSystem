@@ -4,55 +4,47 @@ import javax.swing.*;
 import javax.swing.table.TableCellRenderer;
 import java.awt.*;
 
-public class ActionButtonRenderer extends JPanel implements TableCellRenderer {
+/**
+ * Renders the ACTION column as a panel with View / Edit / Delete buttons.
+ * No real logic here — just paints the buttons.
+ */
+public class ActionButtonRenderer implements TableCellRenderer {
 
-    private JButton viewBtn;
-    private JButton editBtn;
-    private JButton deleteBtn;
+    private final JPanel  panel  = new JPanel(new FlowLayout(FlowLayout.CENTER, 4, 4));
+    private final JButton btnView   = makeButton("View",   new Color(70, 130, 180));
+    private final JButton btnEdit   = makeButton("Edit",   new Color(102, 170, 51));
+    private final JButton btnDelete = makeButton("Delete", new Color(200, 60, 60));
 
     public ActionButtonRenderer() {
-        setLayout(new GridLayout(1, 3, 5, 0));
-        setOpaque(true);
-
-        viewBtn = createButton("View");
-        editBtn = createButton("Edit");
-        deleteBtn = createButton("Delete");
-
-        add(viewBtn);
-        add(editBtn);
-        add(deleteBtn);
-    }
-
-    private JButton createButton(String text) {
-        JButton btn = new JButton(text);
-        btn.setFocusPainted(false);
-        btn.setBorder(BorderFactory.createLineBorder(new Color(180, 180, 180), 1, true));
-        btn.setContentAreaFilled(true);
-        btn.setOpaque(true);
-        btn.setForeground(new Color(50, 50, 50));
-        btn.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        return btn;
+        panel.setOpaque(true);
+        panel.add(btnView);
+        panel.add(btnEdit);
+        panel.add(btnDelete);
     }
 
     @Override
     public Component getTableCellRendererComponent(JTable table, Object value,
                                                    boolean isSelected, boolean hasFocus,
                                                    int row, int column) {
-        // Set panel background to match row
         if (isSelected) {
-            setBackground(new Color(102, 170, 51)); // same as your row selection green
-        } else if (row % 2 == 0) {
-            setBackground(new Color(220, 220, 220));
+            panel.setBackground(new Color(102, 170, 51));
         } else {
-            setBackground(new Color(235, 235, 235));
+            panel.setBackground(row % 2 == 0
+                    ? new Color(220, 220, 220)
+                    : new Color(235, 235, 235));
         }
+        return panel;
+    }
 
-        // Set all buttons to match panel background
-        viewBtn.setBackground(getBackground());
-        editBtn.setBackground(getBackground());
-        deleteBtn.setBackground(getBackground());
-
-        return this;
+    private static JButton makeButton(String text, Color bg) {
+        JButton btn = new JButton(text);
+        btn.setFont(new Font("Tahoma", Font.BOLD, 11));
+        btn.setBackground(bg);
+        btn.setForeground(Color.WHITE);
+        btn.setFocusPainted(false);
+        btn.setBorderPainted(false);
+        btn.setPreferredSize(new Dimension(65, 28));
+        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        return btn;
     }
 }

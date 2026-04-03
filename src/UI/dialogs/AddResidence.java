@@ -1,6 +1,7 @@
 package UI.dialogs;
 
 import UI.panels.GradientPanel;
+import UI.panels.HomePanel;
 import UI.components.OvalButton;
 import service.AddResidenceService;
 
@@ -19,7 +20,7 @@ public class AddResidence extends JDialog {
     
     private AddResidenceService residenceService;
 
-    public AddResidence(JFrame parent) {
+    public AddResidence(JFrame parent, HomePanel homePanel) {
         super(parent, "Add Residence", true); // modal dialog
         
         // Initialize the service

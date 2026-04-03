@@ -8,8 +8,7 @@ import java.util.List;
 
 /**
  * ResidentDAO — Data Access Object for the residents table.
- * Handles all database queries and data transformation.
- * No UI code here.
+ * All operations use the primary key (id) to avoid name-collision bugs.
  */
 public class ResidentDAO {
 
@@ -17,148 +16,120 @@ public class ResidentDAO {
 
     /** Plain data container representing one row in ResidenceTable. */
     public static class ResidentRow {
+        public final int    id;        // ← primary key carried through to UI
         public final String name;
         public final int    age;
         public final String sex;
         public final String address;
         public final String purok;
         public final String status;
+        public final String birthdate; // kept for round-trip editing
 
-        public ResidentRow(String name, int age, String sex,
-                           String address, String purok, String status) {
-            this.name    = name;
-            this.age     = age;
-            this.sex     = sex;
-            this.address = address;
-            this.purok   = purok;
-            this.status  = status;
+        public ResidentRow(int id, String name, int age, String sex,
+                           String address, String purok, String status,
+                           String birthdate) {
+            this.id        = id;
+            this.name      = name;
+            this.age       = age;
+            this.sex       = sex;
+            this.address   = address;
+            this.purok     = purok;
+            this.status    = status;
+            this.birthdate = birthdate;
         }
     }
 
-    // ================= PUBLIC METHOD =================
+    // ================= READ =================
 
-    /**
-     * Fetches all residents from SQLite and returns them as a
-     * ready-to-display list of ResidentRow objects.
-     */
+    /** Returns all residents as display rows. */
     public static List<ResidentRow> getAllResidentRows() {
         List<ResidentRow> rows = new ArrayList<>();
-
         try {
-            ResultSet rs = DatabaseManager.getAllResidents();
-            while (rs.next()) {
-                String name        = rs.getString("name");
-                String birthdate   = rs.getString("birthdate");
-                String address     = rs.getString("address");
-                String sex         = rs.getString("sex");        // READ DIRECTLY
-                String purok       = rs.getString("purok");      // READ DIRECTLY
-                String civilStatus = rs.getString("civil_status");
-
-                rows.add(new ResidentRow(
-                        name,
-                        calculateAge(birthdate),
-                        sex != null && !sex.isEmpty() ? sex : "—",           // USE DIRECT VALUE
-                        address != null ? address : "—",
-                        purok != null && !purok.isEmpty() ? purok : "—",     // USE DIRECT VALUE
-                        civilStatus != null ? civilStatus : "—"
-                ));
+            for (DatabaseManager.Resident r : DatabaseManager.getAllResidents()) {
+                rows.add(toRow(r));
             }
-            rs.getStatement().close();
-
         } catch (SQLException e) {
-            System.err.println("ResidentDAO: failed to load residents — " + e.getMessage());
-            e.printStackTrace();
+            System.err.println("ResidentDAO.getAllResidentRows: " + e.getMessage());
         }
-
         return rows;
+    }
+
+    /** Search residents by keyword (name / address / purok). */
+    public static List<ResidentRow> searchResidentRows(String keyword) {
+        List<ResidentRow> rows = new ArrayList<>();
+        try {
+            for (DatabaseManager.Resident r : DatabaseManager.searchResidents(keyword)) {
+                rows.add(toRow(r));
+            }
+        } catch (SQLException e) {
+            System.err.println("ResidentDAO.searchResidentRows: " + e.getMessage());
+        }
+        return rows;
+    }
+
+    /** Fetch a single resident by ID. Returns null if not found. */
+    public static ResidentRow getResidentById(int id) {
+        try {
+            DatabaseManager.Resident r = DatabaseManager.getResidentById(id);
+            if (r != null) return toRow(r);
+        } catch (SQLException e) {
+            System.err.println("ResidentDAO.getResidentById: " + e.getMessage());
+        }
+        return null;
+    }
+
+    // ================= WRITE =================
+
+    /**
+     * Full update — updates ALL fields by ID.
+     * birthdate must be in "yyyy-MM-dd" format or blank.
+     */
+    public static void updateResident(int id, String name, String sex,
+                                      String address, String purok,
+                                      String contact, String birthdate,
+                                      String civilStatus) {
+        try {
+            DatabaseManager.updateResident(id, name, sex, address, purok,
+                                           contact, birthdate, civilStatus);
+        } catch (SQLException e) {
+            System.err.println("ResidentDAO.updateResident: " + e.getMessage());
+        }
+    }
+
+    /** Delete resident by primary key. */
+    public static void deleteResident(int id) {
+        try {
+            DatabaseManager.deleteResident(id);
+        } catch (SQLException e) {
+            System.err.println("ResidentDAO.deleteResident: " + e.getMessage());
+        }
     }
 
     // ================= PRIVATE HELPERS =================
 
-    /** Computes age from a "yyyy-MM-dd" birthdate string. */
+    private static ResidentRow toRow(DatabaseManager.Resident r) {
+        return new ResidentRow(
+            r.getId(),
+            r.getName(),
+            calculateAge(r.getBirthdate()),
+            safe(r.getSex(),        "—"),
+            safe(r.getAddress(),    "—"),
+            safe(r.getPurok(),      "—"),
+            safe(r.getCivilStatus(),"—"),
+            r.getBirthdate() != null ? r.getBirthdate() : ""
+        );
+    }
+
+    private static String safe(String value, String fallback) {
+        return (value != null && !value.isBlank()) ? value : fallback;
+    }
+
     private static int calculateAge(String birthdate) {
         if (birthdate == null || birthdate.isBlank()) return 0;
         try {
             return Period.between(LocalDate.parse(birthdate), LocalDate.now()).getYears();
         } catch (Exception e) {
             return 0;
-        }
-    }
-
-    // REMOVE or COMMENT OUT these old parsing methods since we're reading directly
-    /*
-    private static String parseSex(String civilStatus) { ... }
-    private static String parseStatus(String civilStatus) { ... }
-    private static String parsePurok(String address) { ... }
-    */
-    
-    public static ResidentRow getResidentByName(String nameSearch) {
-        try {
-            Connection conn = DatabaseManager.getConnection();
-            String sql = "SELECT * FROM residents WHERE name = ?";
-            PreparedStatement ps = conn.prepareStatement(sql);
-            ps.setString(1, nameSearch);
-
-            ResultSet rs = ps.executeQuery();
-            if (rs.next()) {
-                String name        = rs.getString("name");
-                String birthdate   = rs.getString("birthdate");
-                String address     = rs.getString("address");
-                String sex         = rs.getString("sex");           // READ DIRECTLY
-                String purok       = rs.getString("purok");         // READ DIRECTLY
-                String civilStatus = rs.getString("civil_status");
-
-                return new ResidentRow(
-                        name,
-                        calculateAge(birthdate),
-                        sex != null && !sex.isEmpty() ? sex : "—",
-                        address != null ? address : "—",
-                        purok != null && !purok.isEmpty() ? purok : "—",
-                        civilStatus != null ? civilStatus : "—"
-                );
-            }
-
-            rs.close();
-            ps.close();
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return null;
-    }
-    
-    public static void updateResident(String name, String age, String sex, String address, String purok, String status) {
-        try {
-            Connection conn = DatabaseManager.getConnection();
-            
-            // Update all fields including sex and purok
-            String sql = "UPDATE residents SET sex=?, address=?, purok=?, civil_status=? WHERE name=?";
-            PreparedStatement ps = conn.prepareStatement(sql);
-            
-            ps.setString(1, sex);
-            ps.setString(2, address);
-            ps.setString(3, purok);
-            ps.setString(4, status);
-            ps.setString(5, name);
-            
-            ps.executeUpdate();
-            ps.close();
-            
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-    }
-    
-    public static void deleteResident(String name) {
-        try {
-            Connection conn = DatabaseManager.getConnection();
-            String sql = "DELETE FROM residents WHERE name=?";
-            PreparedStatement ps = conn.prepareStatement(sql);
-            ps.setString(1, name);
-            ps.executeUpdate();
-            ps.close();
-        } catch (SQLException e) {
-            e.printStackTrace();
         }
     }
 }
