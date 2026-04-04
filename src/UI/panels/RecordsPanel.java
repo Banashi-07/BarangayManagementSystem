@@ -5,6 +5,7 @@ import UI.components.OvalButton;
 import UI.components.OvalPanel;
 import UI.components.PrintClearance;
 import UI.components.PrintIndigency;
+import UI.components.PrintResidency;
 import UI.dialogs.AddResidence;
 
 import javax.swing.*;
@@ -15,10 +16,10 @@ import java.awt.*;
 /**
  * RecordsPanel — shows the resident records list with search and action buttons.
  *
- * Fixes applied:
- *  - Search field is now wired to ResidenceTable.search()
- *  - Print Clearance / Print Indigency use selected row ID
- *  - GradientPanel reference kept (assumes GradientPanel exists in this package)
+ * All print buttons now functional:
+ *  - Print Residency uses PrintResidency.print()
+ *  - Print Clearance uses PrintClearance.print()
+ *  - Print Indigency uses PrintIndigency.print()
  */
 public class RecordsPanel extends JPanel {
 
@@ -132,7 +133,7 @@ public class RecordsPanel extends JPanel {
             homePanel.refreshStatistics();
         });
 
-        // Print Residency (placeholder — implement your own print logic)
+        // Print Residency
         btnPrintResidence.addActionListener(e -> {
             int id = getSelectedResidentId();
             if (id == -1) {
@@ -140,8 +141,7 @@ public class RecordsPanel extends JPanel {
                         "No Selection", JOptionPane.INFORMATION_MESSAGE);
                 return;
             }
-            // TODO: implement print residency
-            JOptionPane.showMessageDialog(this, "Print Residency for ID: " + id + " (not yet implemented).");
+            PrintResidency.print(id);
         });
 
         // Print Clearance

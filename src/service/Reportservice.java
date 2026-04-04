@@ -356,7 +356,7 @@ public class Reportservice {
      * Gets count of reports by status
      */
     public static int getReportCountByStatus(String status) throws SQLException {
-        String sql = "SELECT COUNT(*) FROM reports WHERE status = ?";
+        String sql = "SELECT COUNT(*) FROM reports WHERE status = ?"; 
         try (PreparedStatement ps = getConnection().prepareStatement(sql)) {
             ps.setString(1, status);
             try (ResultSet rs = ps.executeQuery()) {

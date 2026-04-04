@@ -1,79 +1,55 @@
 package UI.components;
 
-import com.itextpdf.text.pdf.*;
-import database.DatabaseManager;
+import service.CertificateService;
 
 import javax.swing.*;
-import java.io.*;
-import java.awt.Desktop;
 
+/**
+ * PrintResidency — Handles printing of Certificate of Residency
+ */
 public class PrintResidency {
 
-    public static void print(int id) {
-        generate(id, "filepdf/Residency.pdf", "residency_");
-    }
+    /**
+     * Print a Certificate of Residency for the given resident ID.
+     * Prompts user for the purpose before generating.
+     */
+    public static void print(int residentId) {
+        // Prompt for purpose
+        String purpose = JOptionPane.showInputDialog(
+            null,
+            "Enter the purpose for this Certificate of Residency:",
+            "Certificate Purpose",
+            JOptionPane.QUESTION_MESSAGE
+        );
 
-    private static void generate(int id, String template, String prefix) {
-        try {
-            DatabaseManager.Resident r = DatabaseManager.getResidentById(id);
-
-            if (r == null) {
-                JOptionPane.showMessageDialog(null, "Resident not found!");
-                return;
-            }
-
-            new File("output").mkdirs();
-
-            String name = safe(r.getName());
-            String address = safe(r.getAddress());
-            String purok = safe(r.getPurok());
-
-            String output = "output/" + prefix + name + ".pdf";
-
-            PdfReader reader = new PdfReader(template);
-            PdfStamper stamper = new PdfStamper(reader, new FileOutputStream(output));
-
-            PdfContentByte canvas = stamper.getOverContent(1);
-            BaseFont font = BaseFont.createFont(BaseFont.HELVETICA, BaseFont.WINANSI, false);
-
-            canvas.beginText();
-            canvas.setFontAndSize(font, 12);
-
-            canvas.setTextMatrix(150, 500);
-            canvas.showText(name);
-
-            canvas.setTextMatrix(150, 480);
-            canvas.showText(address);
-
-            canvas.setTextMatrix(150, 460);
-            canvas.showText("Purok " + purok);
-
-            canvas.endText();
-
-            stamper.close();
-            reader.close();
-
-            open(output);
-
-            JOptionPane.showMessageDialog(null, "Residency generated!");
-
-        } catch (Exception e) {
-            error(e);
+        // User cancelled
+        if (purpose == null) {
+            return;
         }
-    }
 
-    private static String safe(String s) {
-        return (s == null) ? "" : s;
-    }
+        // Default purpose if left blank
+        if (purpose.trim().isEmpty()) {
+            purpose = "whatever legal purpose it may serve";
+        }
 
-    private static void open(String path) {
         try {
-            Desktop.getDesktop().open(new File(path));
-        } catch (Exception ignored) {}
-    }
-
-    private static void error(Exception e) {
-        e.printStackTrace();
-        JOptionPane.showMessageDialog(null, "Error:\n" + e.getMessage());
+            // Generate and open certificate
+            CertificateService.generateResidency(residentId, purpose.trim());
+            
+            JOptionPane.showMessageDialog(
+                null,
+                "Certificate of Residency generated successfully!\nOpening in your browser...",
+                "Success",
+                JOptionPane.INFORMATION_MESSAGE
+            );
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(
+                null,
+                "Failed to generate certificate:\n" + e.getMessage(),
+                "Error",
+                JOptionPane.ERROR_MESSAGE
+            );
+            e.printStackTrace();
+        }
     }
 }
