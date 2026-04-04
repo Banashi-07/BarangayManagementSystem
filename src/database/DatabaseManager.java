@@ -26,6 +26,14 @@ public class DatabaseManager {
                 return;
             }
 
+            if (connection != null && !connection.isClosed()) {
+                try {
+                    connection.close();
+                } catch (SQLException e) {
+                    // Ignore
+                }
+            }
+
             connection = DriverManager.getConnection("jdbc:sqlite:" + DB_PATH);
             System.out.println("Database connected: " + new File(DB_PATH).getAbsolutePath());
 
@@ -56,6 +64,7 @@ public class DatabaseManager {
                 contact TEXT,
                 birthdate TEXT,
                 civil_status TEXT,
+                pwd TEXT DEFAULT 'No',
                 registered_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """;
@@ -103,6 +112,10 @@ public class DatabaseManager {
                 addColumn("residents", "purok", "TEXT");
                 System.out.println("Added 'purok' column");
             }
+            if (!columnExists("residents", "pwd")) {
+                addColumn("residents", "pwd", "TEXT DEFAULT 'No'");
+                System.out.println("Added 'pwd' column");
+            }
         } catch (SQLException e) {
             System.err.println("Error migrating database: " + e.getMessage());
         }
@@ -130,13 +143,18 @@ public class DatabaseManager {
         if (connection != null && !connection.isClosed()) {
             try (Statement stmt = connection.createStatement()) {
                 stmt.execute("PRAGMA wal_checkpoint(TRUNCATE)");
-                stmt.execute("PRAGMA shrink_memory");
             }
         }
     }
 
     public static Connection getConnection() {
-        if (connection == null) connect();
+        try {
+            if (connection == null || connection.isClosed()) {
+                connect();
+            }
+        } catch (SQLException e) {
+            connect();
+        }
         return connection;
     }
 
@@ -169,6 +187,7 @@ public class DatabaseManager {
         private String contact;
         private String birthdate;
         private String civilStatus;
+        private String pwd;
         private String registeredDate;
 
         public int getId() { return id; }
@@ -187,8 +206,14 @@ public class DatabaseManager {
         public void setBirthdate(String birthdate) { this.birthdate = birthdate; }
         public String getCivilStatus() { return civilStatus; }
         public void setCivilStatus(String civilStatus) { this.civilStatus = civilStatus; }
+        public String getPwd() { return pwd; }
+        public void setPwd(String pwd) { this.pwd = pwd; }
         public String getRegisteredDate() { return registeredDate; }
         public void setRegisteredDate(String registeredDate) { this.registeredDate = registeredDate; }
+        
+        public boolean isPwd() {
+            return pwd != null && pwd.equalsIgnoreCase("Yes");
+        }
     }
 
     // ========== OFFICIAL MODEL ==========
@@ -260,8 +285,8 @@ public class DatabaseManager {
         @Override
         public String toString() {
             return String.format(
-                "Population: %d, Male: %d, Female: %d, Senior: %d, Voters: %d, Households: %d, Blotters: %d",
-                totalPopulation, maleCount, femaleCount, seniorCount, voterCount, householdCount, blotterCount);
+                "Population: %d, Male: %d, Female: %d, Senior: %d, Voters: %d, Households: %d, Blotters: %d, PWD: %d",
+                totalPopulation, maleCount, femaleCount, seniorCount, voterCount, householdCount, blotterCount, pwdCount);
         }
     }
 
@@ -272,13 +297,14 @@ public class DatabaseManager {
                 (SELECT COUNT(*) FROM residents) AS total_population,
                 (SELECT COUNT(*) FROM residents WHERE LOWER(sex) = 'male') AS male_count,
                 (SELECT COUNT(*) FROM residents WHERE LOWER(sex) = 'female') AS female_count,
-                (SELECT COUNT(*) FROM residents WHERE birthdate <= date('now','-60 years') AND birthdate != '' AND birthdate IS NOT NULL) AS senior_count,
-                (SELECT COUNT(*) FROM residents WHERE birthdate <= date('now','-18 years') AND birthdate != '' AND birthdate IS NOT NULL) AS voter_count,
+                (SELECT COUNT(*) FROM residents WHERE birthdate != '' AND birthdate IS NOT NULL AND date(birthdate) <= date('now','-60 years')) AS senior_count,
+                (SELECT COUNT(*) FROM residents WHERE birthdate != '' AND birthdate IS NOT NULL AND date(birthdate) <= date('now','-18 years')) AS voter_count,
                 (SELECT COUNT(DISTINCT address) FROM residents WHERE address != '' AND address IS NOT NULL) AS household_count,
-                (SELECT COUNT(*) FROM blotters) AS blotter_count
+                (SELECT COUNT(*) FROM blotters) AS blotter_count,
+                (SELECT COUNT(*) FROM residents WHERE LOWER(pwd) = 'yes') AS pwd_count
         """;
 
-        try (Statement stmt = connection.createStatement();
+        try (Statement stmt = getConnection().createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
             if (rs.next()) {
                 stats.totalPopulation = rs.getInt("total_population");
@@ -288,8 +314,8 @@ public class DatabaseManager {
                 stats.voterCount      = rs.getInt("voter_count");
                 stats.householdCount  = rs.getInt("household_count");
                 stats.blotterCount    = rs.getInt("blotter_count");
+                stats.pwdCount        = rs.getInt("pwd_count");
                 if (stats.householdCount == 0) stats.householdCount = stats.totalPopulation;
-                stats.pwdCount = 0;
             }
         } catch (SQLException e) {
             System.err.println("Error getting statistics: " + e.getMessage());
@@ -309,14 +335,15 @@ public class DatabaseManager {
     public static int getVoterCount()       { return getAllStatistics().voterCount; }
     public static int getHouseholdCount()   { return getAllStatistics().householdCount; }
     public static int getBlotterCount()     { return getAllStatistics().blotterCount; }
+    public static int getPwdCount()         { return getAllStatistics().pwdCount; }
 
     // ========== RESIDENTS CRUD ==========
 
     public static void addResident(String name, String sex, String address,
                                    String purok, String contact, String birthdate,
-                                   String civilStatus) throws SQLException {
-        String sql = "INSERT INTO residents (name, sex, address, purok, contact, birthdate, civil_status) VALUES (?,?,?,?,?,?,?)";
-        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+                                   String civilStatus, String pwd) throws SQLException {
+        String sql = "INSERT INTO residents (name, sex, address, purok, contact, birthdate, civil_status, pwd) VALUES (?,?,?,?,?,?,?,?)";
+        try (PreparedStatement ps = getConnection().prepareStatement(sql)) {
             ps.setString(1, name);
             ps.setString(2, sex);
             ps.setString(3, address);
@@ -324,21 +351,27 @@ public class DatabaseManager {
             ps.setString(5, contact);
             ps.setString(6, birthdate);
             ps.setString(7, civilStatus);
+            ps.setString(8, pwd);
             ps.executeUpdate();
             refreshCache();
         }
     }
 
-    /** Backward-compatible overload */
+    public static void addResident(String name, String sex, String address,
+                                   String purok, String contact, String birthdate,
+                                   String civilStatus) throws SQLException {
+        addResident(name, sex, address, purok, contact, birthdate, civilStatus, "No");
+    }
+
     public static void addResident(String name, String address, String contact,
                                    String birthdate, String civilStatus) throws SQLException {
-        addResident(name, "", address, "", contact, birthdate, civilStatus);
+        addResident(name, "", address, "", contact, birthdate, civilStatus, "No");
     }
 
     public static List<Resident> getAllResidents() throws SQLException {
         List<Resident> list = new ArrayList<>();
         String sql = "SELECT * FROM residents ORDER BY id DESC";
-        try (Statement stmt = connection.createStatement();
+        try (Statement stmt = getConnection().createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
             while (rs.next()) list.add(mapResident(rs));
         }
@@ -347,7 +380,7 @@ public class DatabaseManager {
 
     public static Resident getResidentById(int id) throws SQLException {
         String sql = "SELECT * FROM residents WHERE id = ?";
-        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+        try (PreparedStatement ps = getConnection().prepareStatement(sql)) {
             ps.setInt(1, id);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) return mapResident(rs);
@@ -356,14 +389,11 @@ public class DatabaseManager {
         return null;
     }
 
-    /**
-     * Full update by ID — updates ALL fields including name and birthdate.
-     */
     public static void updateResident(int id, String name, String sex, String address,
                                       String purok, String contact, String birthdate,
-                                      String civilStatus) throws SQLException {
-        String sql = "UPDATE residents SET name=?, sex=?, address=?, purok=?, contact=?, birthdate=?, civil_status=? WHERE id=?";
-        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+                                      String civilStatus, String pwd) throws SQLException {
+        String sql = "UPDATE residents SET name=?, sex=?, address=?, purok=?, contact=?, birthdate=?, civil_status=?, pwd=? WHERE id=?";
+        try (PreparedStatement ps = getConnection().prepareStatement(sql)) {
             ps.setString(1, name);
             ps.setString(2, sex);
             ps.setString(3, address);
@@ -371,21 +401,27 @@ public class DatabaseManager {
             ps.setString(5, contact);
             ps.setString(6, birthdate);
             ps.setString(7, civilStatus);
-            ps.setInt(8, id);
+            ps.setString(8, pwd);
+            ps.setInt(9, id);
             ps.executeUpdate();
             refreshCache();
         }
     }
 
-    /** Backward-compatible overload */
+    public static void updateResident(int id, String name, String sex, String address,
+                                      String purok, String contact, String birthdate,
+                                      String civilStatus) throws SQLException {
+        updateResident(id, name, sex, address, purok, contact, birthdate, civilStatus, "No");
+    }
+
     public static void updateResident(int id, String name, String address,
                                       String contact, String birthdate, String civilStatus) throws SQLException {
-        updateResident(id, name, "", address, "", contact, birthdate, civilStatus);
+        updateResident(id, name, "", address, "", contact, birthdate, civilStatus, "No");
     }
 
     public static void deleteResident(int id) throws SQLException {
         String sql = "DELETE FROM residents WHERE id=?";
-        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+        try (PreparedStatement ps = getConnection().prepareStatement(sql)) {
             ps.setInt(1, id);
             ps.executeUpdate();
             refreshCache();
@@ -395,7 +431,7 @@ public class DatabaseManager {
     public static List<Resident> searchResidents(String keyword) throws SQLException {
         List<Resident> list = new ArrayList<>();
         String sql = "SELECT * FROM residents WHERE name LIKE ? OR address LIKE ? OR purok LIKE ? ORDER BY id DESC";
-        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+        try (PreparedStatement ps = getConnection().prepareStatement(sql)) {
             String p = "%" + keyword + "%";
             ps.setString(1, p); ps.setString(2, p); ps.setString(3, p);
             try (ResultSet rs = ps.executeQuery()) {
@@ -405,8 +441,44 @@ public class DatabaseManager {
         return list;
     }
 
+    public static List<Resident> getResidentsByPwd(String pwd) throws SQLException {
+        List<Resident> list = new ArrayList<>();
+        String sql = "SELECT * FROM residents WHERE LOWER(pwd) = LOWER(?) ORDER BY id DESC";
+        try (PreparedStatement ps = getConnection().prepareStatement(sql)) {
+            ps.setString(1, pwd);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) list.add(mapResident(rs));
+            }
+        }
+        return list;
+    }
+
+    public static List<Resident> getResidentsByCivilStatus(String civilStatus) throws SQLException {
+        List<Resident> list = new ArrayList<>();
+        String sql = "SELECT * FROM residents WHERE LOWER(civil_status) = LOWER(?) ORDER BY id DESC";
+        try (PreparedStatement ps = getConnection().prepareStatement(sql)) {
+            ps.setString(1, civilStatus);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) list.add(mapResident(rs));
+            }
+        }
+        return list;
+    }
+
+    public static List<Resident> getResidentsByPurok(String purok) throws SQLException {
+        List<Resident> list = new ArrayList<>();
+        String sql = "SELECT * FROM residents WHERE LOWER(purok) = LOWER(?) ORDER BY id DESC";
+        try (PreparedStatement ps = getConnection().prepareStatement(sql)) {
+            ps.setString(1, purok);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) list.add(mapResident(rs));
+            }
+        }
+        return list;
+    }
+
     public static int getResidentsCount() throws SQLException {
-        try (Statement stmt = connection.createStatement();
+        try (Statement stmt = getConnection().createStatement();
              ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM residents")) {
             return rs.getInt(1);
         }
@@ -422,6 +494,7 @@ public class DatabaseManager {
         r.setContact(rs.getString("contact"));
         r.setBirthdate(rs.getString("birthdate"));
         r.setCivilStatus(rs.getString("civil_status"));
+        r.setPwd(rs.getString("pwd"));
         r.setRegisteredDate(rs.getString("registered_date"));
         return r;
     }
@@ -431,7 +504,7 @@ public class DatabaseManager {
     public static void addOfficial(String name, String position, String termStart,
                                    String termEnd, String contact) throws SQLException {
         String sql = "INSERT INTO officials (name, position, term_start, term_end, contact) VALUES (?,?,?,?,?)";
-        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+        try (PreparedStatement ps = getConnection().prepareStatement(sql)) {
             ps.setString(1, name); ps.setString(2, position);
             ps.setString(3, termStart); ps.setString(4, termEnd);
             ps.setString(5, contact);
@@ -442,7 +515,7 @@ public class DatabaseManager {
 
     public static List<Official> getAllOfficials() throws SQLException {
         List<Official> list = new ArrayList<>();
-        try (Statement stmt = connection.createStatement();
+        try (Statement stmt = getConnection().createStatement();
              ResultSet rs = stmt.executeQuery("SELECT * FROM officials ORDER BY position")) {
             while (rs.next()) {
                 Official o = new Official();
@@ -456,10 +529,31 @@ public class DatabaseManager {
         return list;
     }
 
+    public static Official getOfficialById(int id) throws SQLException {
+        String sql = "SELECT * FROM officials WHERE id = ?";
+        try (PreparedStatement ps = getConnection().prepareStatement(sql)) {
+            ps.setInt(1, id);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    Official o = new Official();
+                    o.setId(rs.getInt("id"));
+                    o.setName(rs.getString("name"));
+                    o.setPosition(rs.getString("position"));
+                    o.setTermStart(rs.getString("term_start"));
+                    o.setTermEnd(rs.getString("term_end"));
+                    o.setContact(rs.getString("contact"));
+                    o.setCreatedDate(rs.getString("created_date"));
+                    return o;
+                }
+            }
+        }
+        return null;
+    }
+
     public static void updateOfficial(int id, String name, String position,
                                       String termStart, String termEnd, String contact) throws SQLException {
         String sql = "UPDATE officials SET name=?, position=?, term_start=?, term_end=?, contact=? WHERE id=?";
-        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+        try (PreparedStatement ps = getConnection().prepareStatement(sql)) {
             ps.setString(1, name); ps.setString(2, position);
             ps.setString(3, termStart); ps.setString(4, termEnd);
             ps.setString(5, contact); ps.setInt(6, id);
@@ -470,9 +564,29 @@ public class DatabaseManager {
 
     public static void deleteOfficial(int id) throws SQLException {
         String sql = "DELETE FROM officials WHERE id=?";
-        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+        try (PreparedStatement ps = getConnection().prepareStatement(sql)) {
             ps.setInt(1, id); ps.executeUpdate(); refreshCache();
         }
+    }
+
+    public static List<Official> searchOfficials(String keyword) throws SQLException {
+        List<Official> list = new ArrayList<>();
+        String sql = "SELECT * FROM officials WHERE name LIKE ? OR position LIKE ? ORDER BY position";
+        try (PreparedStatement ps = getConnection().prepareStatement(sql)) {
+            String p = "%" + keyword + "%";
+            ps.setString(1, p); ps.setString(2, p);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Official o = new Official();
+                    o.setId(rs.getInt("id")); o.setName(rs.getString("name"));
+                    o.setPosition(rs.getString("position")); o.setTermStart(rs.getString("term_start"));
+                    o.setTermEnd(rs.getString("term_end")); o.setContact(rs.getString("contact"));
+                    o.setCreatedDate(rs.getString("created_date"));
+                    list.add(o);
+                }
+            }
+        }
+        return list;
     }
 
     // ========== BLOTTERS CRUD ==========
@@ -481,7 +595,7 @@ public class DatabaseManager {
                                   String incidentType, String description,
                                   String dateIncident, String status) throws SQLException {
         String sql = "INSERT INTO blotters (complainant, respondent, incident_type, description, date_incident, status) VALUES (?,?,?,?,?,?)";
-        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+        try (PreparedStatement ps = getConnection().prepareStatement(sql)) {
             ps.setString(1, complainant); ps.setString(2, respondent);
             ps.setString(3, incidentType); ps.setString(4, description);
             ps.setString(5, dateIncident); ps.setString(6, status);
@@ -492,7 +606,7 @@ public class DatabaseManager {
 
     public static List<Blotter> getAllBlotters() throws SQLException {
         List<Blotter> list = new ArrayList<>();
-        try (Statement stmt = connection.createStatement();
+        try (Statement stmt = getConnection().createStatement();
              ResultSet rs = stmt.executeQuery("SELECT * FROM blotters ORDER BY id DESC")) {
             while (rs.next()) {
                 Blotter b = new Blotter();
@@ -506,18 +620,130 @@ public class DatabaseManager {
         return list;
     }
 
+    public static Blotter getBlotterById(int id) throws SQLException {
+        String sql = "SELECT * FROM blotters WHERE id = ?";
+        try (PreparedStatement ps = getConnection().prepareStatement(sql)) {
+            ps.setInt(1, id);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    Blotter b = new Blotter();
+                    b.setId(rs.getInt("id"));
+                    b.setComplainant(rs.getString("complainant"));
+                    b.setRespondent(rs.getString("respondent"));
+                    b.setIncidentType(rs.getString("incident_type"));
+                    b.setDescription(rs.getString("description"));
+                    b.setDateIncident(rs.getString("date_incident"));
+                    b.setStatus(rs.getString("status"));
+                    b.setCreatedDate(rs.getString("created_date"));
+                    return b;
+                }
+            }
+        }
+        return null;
+    }
+
+    public static List<Blotter> getBlottersByComplainant(String complainant) throws SQLException {
+        List<Blotter> list = new ArrayList<>();
+        if (complainant == null || complainant.isBlank()) return list;
+        
+        String sql = "SELECT * FROM blotters WHERE LOWER(TRIM(complainant)) = LOWER(TRIM(?)) ORDER BY id DESC";
+        try (PreparedStatement ps = getConnection().prepareStatement(sql)) {
+            ps.setString(1, complainant);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Blotter b = new Blotter();
+                    b.setId(rs.getInt("id")); b.setComplainant(rs.getString("complainant"));
+                    b.setRespondent(rs.getString("respondent")); b.setIncidentType(rs.getString("incident_type"));
+                    b.setDescription(rs.getString("description")); b.setDateIncident(rs.getString("date_incident"));
+                    b.setStatus(rs.getString("status")); b.setCreatedDate(rs.getString("created_date"));
+                    list.add(b);
+                }
+            }
+        }
+        return list;
+    }
+
+    public static List<Blotter> getBlottersByRespondent(String respondent) throws SQLException {
+        List<Blotter> list = new ArrayList<>();
+        if (respondent == null || respondent.isBlank()) return list;
+        
+        String sql = "SELECT * FROM blotters WHERE LOWER(TRIM(respondent)) = LOWER(TRIM(?)) ORDER BY id DESC";
+        try (PreparedStatement ps = getConnection().prepareStatement(sql)) {
+            ps.setString(1, respondent);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Blotter b = new Blotter();
+                    b.setId(rs.getInt("id")); b.setComplainant(rs.getString("complainant"));
+                    b.setRespondent(rs.getString("respondent")); b.setIncidentType(rs.getString("incident_type"));
+                    b.setDescription(rs.getString("description")); b.setDateIncident(rs.getString("date_incident"));
+                    b.setStatus(rs.getString("status")); b.setCreatedDate(rs.getString("created_date"));
+                    list.add(b);
+                }
+            }
+        }
+        return list;
+    }
+
+    public static List<Blotter> getBlottersByStatus(String status) throws SQLException {
+        List<Blotter> list = new ArrayList<>();
+        String sql = "SELECT * FROM blotters WHERE LOWER(status) = LOWER(?) ORDER BY id DESC";
+        try (PreparedStatement ps = getConnection().prepareStatement(sql)) {
+            ps.setString(1, status);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Blotter b = new Blotter();
+                    b.setId(rs.getInt("id")); b.setComplainant(rs.getString("complainant"));
+                    b.setRespondent(rs.getString("respondent")); b.setIncidentType(rs.getString("incident_type"));
+                    b.setDescription(rs.getString("description")); b.setDateIncident(rs.getString("date_incident"));
+                    b.setStatus(rs.getString("status")); b.setCreatedDate(rs.getString("created_date"));
+                    list.add(b);
+                }
+            }
+        }
+        return list;
+    }
+
     public static void updateBlotterStatus(int id, String status) throws SQLException {
         String sql = "UPDATE blotters SET status=? WHERE id=?";
-        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+        try (PreparedStatement ps = getConnection().prepareStatement(sql)) {
             ps.setString(1, status); ps.setInt(2, id);
             ps.executeUpdate(); refreshCache();
         }
     }
 
+    public static void updateBlotter(int id, String complainant, String respondent,
+                                     String incidentType, String description,
+                                     String dateIncident, String status) throws SQLException {
+        String sql = "UPDATE blotters SET complainant=?, respondent=?, incident_type=?, description=?, date_incident=?, status=? WHERE id=?";
+        try (PreparedStatement ps = getConnection().prepareStatement(sql)) {
+            ps.setString(1, complainant); ps.setString(2, respondent);
+            ps.setString(3, incidentType); ps.setString(4, description);
+            ps.setString(5, dateIncident); ps.setString(6, status);
+            ps.setInt(7, id);
+            ps.executeUpdate();
+            refreshCache();
+        }
+    }
+
     public static void deleteBlotter(int id) throws SQLException {
         String sql = "DELETE FROM blotters WHERE id=?";
-        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+        try (PreparedStatement ps = getConnection().prepareStatement(sql)) {
             ps.setInt(1, id); ps.executeUpdate(); refreshCache();
+        }
+    }
+
+    public static int getBlottersCount() throws SQLException {
+        try (Statement stmt = getConnection().createStatement();
+             ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM blotters")) {
+            return rs.getInt(1);
+        }
+    }
+
+    public static int getPendingBlottersCount() throws SQLException {
+        String sql = "SELECT COUNT(*) FROM blotters WHERE LOWER(status) = 'pending'";
+        try (Statement stmt = getConnection().createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            return rs.getInt(1);
         }
     }
 }
