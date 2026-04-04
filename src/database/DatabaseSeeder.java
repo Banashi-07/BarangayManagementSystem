@@ -260,7 +260,7 @@ public class DatabaseSeeder {
     // ---------------------------------------------------------------
     // Summary
     // ---------------------------------------------------------------
-    private static void printSummary() {
+    private static void printSummary() throws SQLException {
         DatabaseManager.Statistics s = DatabaseManager.getAllStatistics();
         System.out.println("--------------------------------------------");
         System.out.println("  DB Summary after seed:");

@@ -8,6 +8,8 @@ import UI.components.CircularButton;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 
 public class HomePanel extends JPanel {
 
@@ -15,6 +17,18 @@ public class HomePanel extends JPanel {
     private JLabel lblFemaleCount, lblMaleCount, lblSeniorCount;
     private JLabel lblPWDCount, lblReportCasesCount;
     private Timer refreshTimer;
+    private static final int MAX_RETRIES = 3;
+    private static final int RETRY_DELAY_MS = 1000;
+    
+    // Components that need to be repositioned
+    private GradientPanel headPanel;
+    private JLabel lblLogo, lblTitle, lblSubtitle;
+    private JPanel paragraphPanel, statsPanel;
+    private JLabel lblParagraph;
+    private JTextPane txtpnloremIpsumDolor;
+    private CircularButton[] statButtons;
+    private OvalPanel announcementPanel;
+    private JLabel lblAnnouncement;
 
     public HomePanel() {
         setLayout(null);
@@ -22,13 +36,12 @@ public class HomePanel extends JPanel {
         setPreferredSize(new Dimension(1280, 1100));
 
         // ===== Gradient Header Panel =====
-        GradientPanel headPanel = new GradientPanel();
-        headPanel.setBounds(0, 0, 1280, 209);
+        headPanel = new GradientPanel();
         headPanel.setLayout(null);
         add(headPanel);
 
         // ===== Logo =====
-        JLabel lblLogo = new JLabel();
+        lblLogo = new JLabel();
         try {
             ImageIcon icon = new ImageIcon(getClass().getResource("/img/logoo.png"));
             Image img = icon.getImage().getScaledInstance(200, 200, Image.SCALE_SMOOTH);
@@ -37,229 +50,128 @@ public class HomePanel extends JPanel {
         } catch (Exception e) {
             System.err.println("Logo not found: " + e.getMessage());
         }
-        lblLogo.setBounds(70, 5, 200, 200);
         lblLogo.setOpaque(false);
         headPanel.add(lblLogo);
 
         // ===== Header Text =====
-        JLabel lblTitle = new JLabel("Barangay Management System", SwingConstants.CENTER);
+        lblTitle = new JLabel("Barangay Management System", SwingConstants.CENTER);
         lblTitle.setForeground(Color.WHITE);
         lblTitle.setFont(new Font("Arial", Font.BOLD, 26));
-        lblTitle.setBounds(0, 50, 1280, 50);
         lblTitle.setOpaque(false);
         headPanel.add(lblTitle);
 
-        JLabel lblSubtitle = new JLabel("SAN MIGUEL, AGOO, LA UNION", SwingConstants.CENTER);
+        lblSubtitle = new JLabel("SAN MIGUEL, AGOO, LA UNION", SwingConstants.CENTER);
         lblSubtitle.setForeground(Color.WHITE);
         lblSubtitle.setFont(new Font("Arial", Font.BOLD, 18));
-        lblSubtitle.setBounds(0, 110, 1280, 30);
         lblSubtitle.setOpaque(false);
         headPanel.add(lblSubtitle);
 
         // Paragraph Panel
-        JPanel paragraphPanel = new JPanel();
-        paragraphPanel.setBounds(94, 241, 1080, 250);
+        paragraphPanel = new JPanel();
         paragraphPanel.setLayout(null);
         paragraphPanel.setBackground(Color.white);
 
-        JLabel lblParagraph = new JLabel("About Our Barangay", SwingConstants.CENTER);
+        lblParagraph = new JLabel("About Our Barangay", SwingConstants.CENTER);
         lblParagraph.setFont(new Font("Arial", Font.BOLD, 22));
-        lblParagraph.setBounds(0, 0, 1080, 50);
         paragraphPanel.add(lblParagraph);
         add(paragraphPanel);
 
-        JTextPane txtpnloremIpsumDolor = new JTextPane();
+        txtpnloremIpsumDolor = new JTextPane();
         txtpnloremIpsumDolor.setFont(new Font("Tahoma", Font.PLAIN, 12));
         txtpnloremIpsumDolor.setText("\"Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.\"");
-        txtpnloremIpsumDolor.setBounds(197, 60, 690, 152);
         paragraphPanel.add(txtpnloremIpsumDolor);
 
-        JPanel statsPanel = new JPanel();
-        statsPanel.setBounds(94, 486, 1080, 150);
+        statsPanel = new JPanel();
         statsPanel.setBackground(Color.WHITE);
         statsPanel.setLayout(null);
 
         // ===== COUNT LABELS =====
         lblHouseholdCount = new JLabel("0", SwingConstants.CENTER);
         lblHouseholdCount.setFont(new Font("Tahoma", Font.BOLD, 15));
-        lblHouseholdCount.setBounds(105, 100, 60, 20);
         statsPanel.add(lblHouseholdCount);
 
         lblPopulationCount = new JLabel("0", SwingConstants.CENTER);
         lblPopulationCount.setFont(new Font("Tahoma", Font.BOLD, 15));
-        lblPopulationCount.setBounds(224, 100, 60, 20);
         statsPanel.add(lblPopulationCount);
 
         lblVotersCount = new JLabel("0", SwingConstants.CENTER);
         lblVotersCount.setFont(new Font("Tahoma", Font.BOLD, 15));
-        lblVotersCount.setBounds(342, 100, 60, 20);
         statsPanel.add(lblVotersCount);
 
         lblFemaleCount = new JLabel("0", SwingConstants.CENTER);
         lblFemaleCount.setFont(new Font("Tahoma", Font.BOLD, 15));
-        lblFemaleCount.setBounds(459, 100, 60, 20);
         statsPanel.add(lblFemaleCount);
 
         lblMaleCount = new JLabel("0", SwingConstants.CENTER);
         lblMaleCount.setFont(new Font("Tahoma", Font.BOLD, 15));
-        lblMaleCount.setBounds(576, 100, 60, 20);
         statsPanel.add(lblMaleCount);
 
         lblSeniorCount = new JLabel("0", SwingConstants.CENTER);
         lblSeniorCount.setFont(new Font("Tahoma", Font.BOLD, 15));
-        lblSeniorCount.setBounds(684, 100, 60, 20);
         statsPanel.add(lblSeniorCount);
 
         lblPWDCount = new JLabel("0", SwingConstants.CENTER);
         lblPWDCount.setFont(new Font("Tahoma", Font.BOLD, 15));
-        lblPWDCount.setBounds(794, 100, 60, 20);
         statsPanel.add(lblPWDCount);
 
         lblReportCasesCount = new JLabel("0", SwingConstants.CENTER);
         lblReportCasesCount.setFont(new Font("Tahoma", Font.BOLD, 15));
-        lblReportCasesCount.setBounds(906, 100, 60, 20);
         statsPanel.add(lblReportCasesCount);
 
         add(statsPanel);
 
         // ===== STATS PANEL ICONS =====
+        statButtons = new CircularButton[8];
         try {
-            ImageIcon hh = new ImageIcon(CircularButton.class.getResource("/img/1.png"));
-            Image hhimg = hh.getImage().getScaledInstance(100, 100, Image.SCALE_SMOOTH);
-            ImageIcon hhicon = new ImageIcon(hhimg);
-
-            ImageIcon pp = new ImageIcon(CircularButton.class.getResource("/img/2.png"));
-            Image ppimg = pp.getImage().getScaledInstance(100, 100, Image.SCALE_SMOOTH);
-            ImageIcon ppicon = new ImageIcon(ppimg);
-
-            ImageIcon rv = new ImageIcon(CircularButton.class.getResource("/img/3.png"));
-            Image rvimg = rv.getImage().getScaledInstance(100, 100, Image.SCALE_SMOOTH);
-            ImageIcon rvicon = new ImageIcon(rvimg);
-
-            ImageIcon fem = new ImageIcon(CircularButton.class.getResource("/img/4.png"));
-            Image femimg = fem.getImage().getScaledInstance(100, 100, Image.SCALE_SMOOTH);
-            ImageIcon femicon = new ImageIcon(femimg);
-
-            ImageIcon male = new ImageIcon(CircularButton.class.getResource("/img/5.png"));
-            Image maleimg = male.getImage().getScaledInstance(100, 100, Image.SCALE_SMOOTH);
-            ImageIcon maleicon = new ImageIcon(maleimg);
-
-            ImageIcon sr = new ImageIcon(CircularButton.class.getResource("/img/6.png"));
-            Image srimg = sr.getImage().getScaledInstance(100, 100, Image.SCALE_SMOOTH);
-            ImageIcon sricon = new ImageIcon(srimg);
-
-            ImageIcon pwd = new ImageIcon(CircularButton.class.getResource("/img/7.png"));
-            Image pwdimg = pwd.getImage().getScaledInstance(100, 100, Image.SCALE_SMOOTH);
-            ImageIcon pwdicon = new ImageIcon(pwdimg);
-
-            ImageIcon rc = new ImageIcon(CircularButton.class.getResource("/img/8.png"));
-            Image rcimg = rc.getImage().getScaledInstance(100, 100, Image.SCALE_SMOOTH);
-            ImageIcon rcicon = new ImageIcon(rcimg);
-
-            CircularButton btnNewButton = new CircularButton((ImageIcon) null, 80);
-            btnNewButton.setBounds(93, 45, 90, 90);
-            btnNewButton.setIcon(hhicon);
-            statsPanel.add(btnNewButton);
-
-            CircularButton btnNewButton_1 = new CircularButton((ImageIcon) null, 80);
-            btnNewButton_1.setBounds(212, 45, 80, 80);
-            btnNewButton_1.setIcon(ppicon);
-            statsPanel.add(btnNewButton_1);
-
-            CircularButton btnNewButton_2 = new CircularButton((ImageIcon) null, 80);
-            btnNewButton_2.setBounds(330, 45, 80, 80);
-            btnNewButton_2.setIcon(rvicon);
-            statsPanel.add(btnNewButton_2);
-
-            CircularButton btnNewButton_3 = new CircularButton((ImageIcon) null, 80);
-            btnNewButton_3.setBounds(448, 45, 80, 80);
-            btnNewButton_3.setIcon(femicon);
-            statsPanel.add(btnNewButton_3);
-
-            CircularButton btnNewButton_4 = new CircularButton((ImageIcon) null, 80);
-            btnNewButton_4.setBounds(564, 45, 80, 80);
-            btnNewButton_4.setIcon(maleicon);
-            statsPanel.add(btnNewButton_4);
-
-            CircularButton btnNewButton_5 = new CircularButton((ImageIcon) null, 80);
-            btnNewButton_5.setBounds(673, 45, 80, 80);
-            btnNewButton_5.setIcon(sricon);
-            statsPanel.add(btnNewButton_5);
-
-            CircularButton btnNewButton_6 = new CircularButton((ImageIcon) null, 80);
-            btnNewButton_6.setBounds(784, 45, 80, 80);
-            btnNewButton_6.setIcon(pwdicon);
-            statsPanel.add(btnNewButton_6);
-
-            CircularButton btnNewButton_7 = new CircularButton((ImageIcon) null, 80);
-            btnNewButton_7.setBounds(894, 45, 80, 80);
-            btnNewButton_7.setIcon(rcicon);
-            statsPanel.add(btnNewButton_7);
+            ImageIcon[] icons = new ImageIcon[8];
+            String[] iconPaths = {"/img/1.png", "/img/2.png", "/img/3.png", "/img/4.png", 
+                                  "/img/5.png", "/img/6.png", "/img/7.png", "/img/8.png"};
+            
+            for (int i = 0; i < 8; i++) {
+                ImageIcon icon = new ImageIcon(CircularButton.class.getResource(iconPaths[i]));
+                Image img = icon.getImage().getScaledInstance(100, 100, Image.SCALE_SMOOTH);
+                icons[i] = new ImageIcon(img);
+                
+                statButtons[i] = new CircularButton(null, 80);
+                statButtons[i].setIcon(icons[i]);
+                statsPanel.add(statButtons[i]);
+            }
         } catch (Exception e) {
-            System.err.println("Error loading icons: " + e.getMessage());
+            System.err.println("Error loading stat icons: " + e.getMessage());
         }
 
-        JLabel lblNewLabel = new JLabel("HOUSEHOLD");
-        lblNewLabel.setFont(new Font("Tahoma", Font.BOLD, 10));
-        lblNewLabel.setBounds(80, 135, 111, 14);
-        statsPanel.add(lblNewLabel);
-        lblNewLabel.setHorizontalAlignment(SwingConstants.CENTER);
-
-        JLabel lblTotalPopulation = new JLabel("POPULATION");
-        lblTotalPopulation.setFont(new Font("Tahoma", Font.BOLD, 10));
-        lblTotalPopulation.setBounds(200, 135, 106, 14);
-        statsPanel.add(lblTotalPopulation);
-        lblTotalPopulation.setHorizontalAlignment(SwingConstants.CENTER);
-
-        JLabel lblTotalPopulation_1 = new JLabel("REGISTERED VOTERS");
-        lblTotalPopulation_1.setFont(new Font("Tahoma", Font.BOLD, 10));
-        lblTotalPopulation_1.setBounds(310, 135, 116, 14);
-        statsPanel.add(lblTotalPopulation_1);
-        lblTotalPopulation_1.setHorizontalAlignment(SwingConstants.CENTER);
-
-        JLabel lblTotalPopulation_1_1 = new JLabel("MALE");
-        lblTotalPopulation_1_1.setFont(new Font("Tahoma", Font.BOLD, 10));
-        lblTotalPopulation_1_1.setBounds(545, 135, 116, 14);
-        statsPanel.add(lblTotalPopulation_1_1);
-        lblTotalPopulation_1_1.setHorizontalAlignment(SwingConstants.CENTER);
-
-        JLabel lblTotalPopulation_1_1_1 = new JLabel("FEMALE");
-        lblTotalPopulation_1_1_1.setFont(new Font("Tahoma", Font.BOLD, 10));
-        lblTotalPopulation_1_1_1.setBounds(430, 135, 116, 14);
-        statsPanel.add(lblTotalPopulation_1_1_1);
-        lblTotalPopulation_1_1_1.setHorizontalAlignment(SwingConstants.CENTER);
-
-        JLabel lblTotalPopulation_1_1_1_1 = new JLabel("SENIOR");
-        lblTotalPopulation_1_1_1_1.setFont(new Font("Tahoma", Font.BOLD, 10));
-        lblTotalPopulation_1_1_1_1.setBounds(655, 135, 116, 14);
-        statsPanel.add(lblTotalPopulation_1_1_1_1);
-        lblTotalPopulation_1_1_1_1.setHorizontalAlignment(SwingConstants.CENTER);
-
-        JLabel lblTotalPopulation_1_1_1_2 = new JLabel("PWD");
-        lblTotalPopulation_1_1_1_2.setFont(new Font("Tahoma", Font.BOLD, 10));
-        lblTotalPopulation_1_1_1_2.setBounds(765, 135, 116, 14);
-        statsPanel.add(lblTotalPopulation_1_1_1_2);
-        lblTotalPopulation_1_1_1_2.setHorizontalAlignment(SwingConstants.CENTER);
-
-        JLabel lblTotalPopulation_1_1_1_3 = new JLabel("REPORT CASES");
-        lblTotalPopulation_1_1_1_3.setFont(new Font("Tahoma", Font.BOLD, 10));
-        lblTotalPopulation_1_1_1_3.setBounds(875, 135, 116, 14);
-        statsPanel.add(lblTotalPopulation_1_1_1_3);
-        lblTotalPopulation_1_1_1_3.setHorizontalAlignment(SwingConstants.CENTER);
+        // Add labels for stat descriptions
+        String[] statLabels = {"Total Household", "Total Population", "Registered Voters", 
+                               "Female Count", "Male Count", "Senior Citizens", "PWD", "Report Cases"};
+        for (int i = 0; i < statLabels.length; i++) {
+            JLabel lbl = new JLabel(statLabels[i]);
+            lbl.setFont(new Font("Tahoma", Font.PLAIN, 11));
+            lbl.setHorizontalAlignment(SwingConstants.CENTER);
+            statsPanel.add(lbl);
+        }
 
         // Announcement Panel
-        OvalPanel announcementPanel = new OvalPanel();
+        announcementPanel = new OvalPanel();
         announcementPanel.setLayout(null);
         announcementPanel.setBackground(new Color(0, 180, 0));
-        announcementPanel.setBounds(94, 673, 1080, 350);
 
-        JLabel lblAnnouncement = new JLabel("Official Announcement");
+        lblAnnouncement = new JLabel("Official Announcement");
         lblAnnouncement.setForeground(Color.WHITE);
         lblAnnouncement.setFont(new Font("Arial", Font.BOLD, 20));
-        lblAnnouncement.setBounds(20, 20, 300, 30);
         announcementPanel.add(lblAnnouncement);
 
         add(announcementPanel);
+
+        // Add component listener for responsive layout
+        addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentResized(ComponentEvent e) {
+                resizeComponents();
+            }
+        });
+
+        // Initial layout
+        resizeComponents();
 
         // Load statistics after UI is built
         loadStatistics();
@@ -267,6 +179,117 @@ public class HomePanel extends JPanel {
         // Auto-refresh every 30 seconds
         refreshTimer = new Timer(30000, e -> loadStatistics());
         refreshTimer.start();
+    }
+
+    /**
+     * Resize and reposition all components based on current panel size
+     */
+    private void resizeComponents() {
+        int width = getWidth();
+        int height = getHeight();
+        
+        if (width == 0 || height == 0) {
+            width = 1280;
+            height = 1100;
+        }
+
+        // Calculate proportions
+        double widthScale = width / 1280.0;
+        double heightScale = height / 1100.0;
+        
+        // Use minimum scale to maintain aspect ratio for certain elements
+        double minScale = Math.min(widthScale, heightScale);
+
+        // ===== Header Panel (proportional height) =====
+        int headerHeight = (int)(209 * heightScale);
+        headPanel.setBounds(0, 0, width, headerHeight);
+
+        // Logo (fixed aspect ratio)
+        int logoSize = (int)(200 * minScale);
+        lblLogo.setBounds((int)(70 * widthScale), (int)(5 * heightScale), logoSize, logoSize);
+        
+        // Update logo image
+        try {
+            ImageIcon icon = new ImageIcon(getClass().getResource("/img/logoo.png"));
+            Image img = icon.getImage().getScaledInstance(logoSize, logoSize, Image.SCALE_SMOOTH);
+            lblLogo.setIcon(new ImageIcon(img));
+        } catch (Exception e) {
+            // Ignore if already loaded
+        }
+
+        // Title
+        lblTitle.setFont(new Font("Arial", Font.BOLD, (int)(26 * minScale)));
+        lblTitle.setBounds(0, (int)(50 * heightScale), width, (int)(50 * heightScale));
+
+        // Subtitle
+        lblSubtitle.setFont(new Font("Arial", Font.BOLD, (int)(18 * minScale)));
+        lblSubtitle.setBounds(0, (int)(110 * heightScale), width, (int)(30 * heightScale));
+
+        // ===== Paragraph Panel =====
+        int paragraphY = (int)(241 * heightScale);
+        int paragraphWidth = (int)(1080 * widthScale);
+        int paragraphHeight = (int)(250 * heightScale);
+        int paragraphX = (width - paragraphWidth) / 2;
+        
+        paragraphPanel.setBounds(paragraphX, paragraphY, paragraphWidth, paragraphHeight);
+        
+        lblParagraph.setFont(new Font("Arial", Font.BOLD, (int)(22 * minScale)));
+        lblParagraph.setBounds(0, 0, paragraphWidth, (int)(50 * heightScale));
+        
+        int textWidth = (int)(690 * widthScale);
+        int textHeight = (int)(152 * heightScale);
+        int textX = (paragraphWidth - textWidth) / 2;
+        txtpnloremIpsumDolor.setFont(new Font("Tahoma", Font.PLAIN, (int)(12 * minScale)));
+        txtpnloremIpsumDolor.setBounds(textX, (int)(60 * heightScale), textWidth, textHeight);
+
+        // ===== Stats Panel =====
+        int statsY = (int)(486 * heightScale);
+        int statsHeight = (int)(150 * heightScale);
+        statsPanel.setBounds(paragraphX, statsY, paragraphWidth, statsHeight);
+
+        // Position stat buttons and labels
+        int buttonSize = (int)(80 * minScale);
+        int spacing = paragraphWidth / 8;
+        int buttonY = (int)(45 * heightScale);
+        int labelY = (int)(100 * heightScale);
+        int descY = (int)(135 * heightScale);
+        
+        Component[] components = statsPanel.getComponents();
+        int buttonIndex = 0;
+        int labelIndex = 0;
+        
+        for (Component comp : components) {
+            if (comp instanceof CircularButton) {
+                int x = spacing / 2 - buttonSize / 2 + (buttonIndex * spacing);
+                comp.setBounds(x, buttonY, buttonSize, buttonSize);
+                buttonIndex++;
+            } else if (comp instanceof JLabel) {
+                JLabel lbl = (JLabel) comp;
+                int idx = labelIndex;
+                
+                // First 8 are count labels, next 8 are description labels
+                if (labelIndex < 8) {
+                    int x = spacing / 2 - 30 + (idx * spacing);
+                    lbl.setBounds(x, labelY, 60, 20);
+                    lbl.setFont(new Font("Tahoma", Font.BOLD, (int)(15 * minScale)));
+                } else {
+                    int descIdx = idx - 8;
+                    int x = spacing / 2 - 58 + (descIdx * spacing);
+                    lbl.setBounds(x, descY, 116, (int)(14 * minScale));
+                    lbl.setFont(new Font("Tahoma", Font.PLAIN, (int)(11 * minScale)));
+                }
+                labelIndex++;
+            }
+        }
+
+        // ===== Announcement Panel =====
+        int announcementY = (int)(673 * heightScale);
+        int announcementHeight = (int)(350 * heightScale);
+        announcementPanel.setBounds(paragraphX, announcementY, paragraphWidth, announcementHeight);
+        
+        lblAnnouncement.setFont(new Font("Arial", Font.BOLD, (int)(20 * minScale)));
+        lblAnnouncement.setBounds((int)(20 * widthScale), (int)(20 * heightScale), 
+                                  (int)(300 * widthScale), (int)(30 * heightScale));
     }
 
     private void loadStatistics() {
@@ -283,51 +306,103 @@ public class HomePanel extends JPanel {
 
             @Override
             protected Void doInBackground() throws Exception {
-                try {
-                    // Initialize reports table
-                    Reportservice.initializeReportsTable();
-                    
-                    // Get statistics from StatisticsService
-                    StatisticsService.Stats stats = StatisticsService.getAllStats();
-                    totalPopulation = stats.totalPopulation;
-                    maleCount = stats.maleCount;
-                    femaleCount = stats.femaleCount;
-                    seniorCount = stats.seniorCount;
-                    voterCount = stats.voterCount;
-                    householdCount = stats.householdCount;
-                    blotterCount = stats.blotterCount;
-                    pwdCount = stats.pwdCount;
-                    
-                    // Get ONLY PENDING reports count
-                    pendingReportCount = Reportservice.getReportCountByStatus("Pending");
-                    
-                    System.out.println("=== Statistics Loaded ===");
-                    System.out.println("Total Population: " + totalPopulation);
-                    System.out.println("Male: " + maleCount);
-                    System.out.println("Female: " + femaleCount);
-                    System.out.println("Senior: " + seniorCount);
-                    System.out.println("Voters: " + voterCount);
-                    System.out.println("Households: " + householdCount);
-                    System.out.println("Blotters: " + blotterCount);
-                    System.out.println("PENDING Reports: " + pendingReportCount);
-                    System.out.println("PWD Count: " + pwdCount);
-                } catch (Exception e) {
-                    System.err.println("Error loading statistics: " + e.getMessage());
-                    e.printStackTrace();
+                for (int retry = 0; retry < MAX_RETRIES; retry++) {
+                    try {
+                        if (!DatabaseManager.isConnected()) {
+                            DatabaseManager.connect();
+                        }
+                        
+                        try {
+                            Reportservice.initializeReportsTable();
+                        } catch (Exception e) {
+                            System.err.println("Error initializing reports table (attempt " + (retry + 1) + "): " + e.getMessage());
+                            if (retry == MAX_RETRIES - 1) throw e;
+                            Thread.sleep(RETRY_DELAY_MS);
+                            continue;
+                        }
+                        
+                        StatisticsService.Stats stats = StatisticsService.getAllStats();
+                        totalPopulation = stats.totalPopulation;
+                        maleCount = stats.maleCount;
+                        femaleCount = stats.femaleCount;
+                        seniorCount = stats.seniorCount;
+                        voterCount = stats.voterCount;
+                        householdCount = stats.householdCount;
+                        blotterCount = stats.blotterCount;
+                        pwdCount = stats.pwdCount;
+                        
+                        pendingReportCount = Reportservice.getReportCountByStatus("Pending");
+                        
+                        System.out.println("=== Statistics Loaded Successfully ===");
+                        System.out.println("Total Population: " + totalPopulation);
+                        System.out.println("Male: " + maleCount);
+                        System.out.println("Female: " + femaleCount);
+                        System.out.println("Senior: " + seniorCount);
+                        System.out.println("Voters: " + voterCount);
+                        System.out.println("Households: " + householdCount);
+                        System.out.println("Blotters: " + blotterCount);
+                        System.out.println("PENDING Reports: " + pendingReportCount);
+                        System.out.println("PWD Count: " + pwdCount);
+                        
+                        break;
+                        
+                    } catch (Exception e) {
+                        System.err.println("Error loading statistics (attempt " + (retry + 1) + "): " + e.getMessage());
+                        e.printStackTrace();
+                        
+                        if (retry < MAX_RETRIES - 1) {
+                            try {
+                                Thread.sleep(RETRY_DELAY_MS);
+                            } catch (InterruptedException ie) {
+                                Thread.currentThread().interrupt();
+                                break;
+                            }
+                            try {
+                                DatabaseManager.close();
+                                Thread.sleep(500);
+                                DatabaseManager.connect();
+                            } catch (Exception reconnectEx) {
+                                System.err.println("Reconnect failed: " + reconnectEx.getMessage());
+                            }
+                        } else {
+                            throw e;
+                        }
+                    }
                 }
                 return null;
             }
 
             @Override
             protected void done() {
-                lblHouseholdCount.setText(String.valueOf(householdCount));
-                lblPopulationCount.setText(String.valueOf(totalPopulation));
-                lblVotersCount.setText(String.valueOf(voterCount));
-                lblFemaleCount.setText(String.valueOf(femaleCount));
-                lblMaleCount.setText(String.valueOf(maleCount));
-                lblSeniorCount.setText(String.valueOf(seniorCount));
-                lblPWDCount.setText(String.valueOf(pwdCount));
-                lblReportCasesCount.setText(String.valueOf(pendingReportCount));
+                try {
+                    get();
+                    
+                    lblHouseholdCount.setText(String.valueOf(householdCount));
+                    lblPopulationCount.setText(String.valueOf(totalPopulation));
+                    lblVotersCount.setText(String.valueOf(voterCount));
+                    lblFemaleCount.setText(String.valueOf(femaleCount));
+                    lblMaleCount.setText(String.valueOf(maleCount));
+                    lblSeniorCount.setText(String.valueOf(seniorCount));
+                    lblPWDCount.setText(String.valueOf(pwdCount));
+                    lblReportCasesCount.setText(String.valueOf(pendingReportCount));
+                    
+                } catch (Exception e) {
+                    System.err.println("Failed to load statistics after " + MAX_RETRIES + " attempts");
+                    e.printStackTrace();
+                    
+                    lblHouseholdCount.setText("Error");
+                    lblPopulationCount.setText("Error");
+                    lblVotersCount.setText("Error");
+                    lblFemaleCount.setText("Error");
+                    lblMaleCount.setText("Error");
+                    lblSeniorCount.setText("Error");
+                    lblPWDCount.setText("Error");
+                    lblReportCasesCount.setText("Error");
+                    
+                    Timer retryTimer = new Timer(10000, evt -> loadStatistics());
+                    retryTimer.setRepeats(false);
+                    retryTimer.start();
+                }
             }
         };
         worker.execute();
@@ -336,19 +411,12 @@ public class HomePanel extends JPanel {
     public void refreshStatistics() {
         SwingUtilities.invokeLater(() -> loadStatistics());
     }
-}
-
-// GradientPanel class
-class GradientPanel extends JPanel {
+    
     @Override
-    protected void paintComponent(Graphics g) {
-        super.paintComponent(g);
-        Graphics2D g2d = (Graphics2D) g;
-        g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
-        int w = getWidth();
-        int h = getHeight();
-        GradientPaint gp = new GradientPaint(0, 0, new Color(34, 139, 34), 0, h, new Color(20, 100, 20));
-        g2d.setPaint(gp);
-        g2d.fillRect(0, 0, w, h);
+    public void removeNotify() {
+        super.removeNotify();
+        if (refreshTimer != null) {
+            refreshTimer.stop();
+        }
     }
 }

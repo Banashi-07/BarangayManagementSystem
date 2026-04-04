@@ -3,160 +3,212 @@ import UI.components.OvalPanel;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 
 public class OfficialListPanel extends JPanel {
+    
+    // Components that need to be repositioned
+    private GradientPanel headPanel;
+    private JLabel lblSubtitle;
+    private JPanel mainPanel;
+    private OvalPanel[] officialPanels;
+    private OvalPanel[] headerPanels;
+    private JLabel[] titleLabels;
+    private JLabel[] namePics;
+    private OvalPanel greenSidePanel;
+    private OvalPanel[] whitePanels;
+    private ImageIcon scaledIcon;
+    
     public OfficialListPanel() {
-     
         setLayout(null);
         setBackground(Color.WHITE);
         setPreferredSize(new Dimension(1280, 1001));
 
-     // ===== Gradient Header Panel =====
-        GradientPanel headPanel = new GradientPanel();
-        headPanel.setBounds(0, 0, 1280, 90);
+        // ===== Gradient Header Panel =====
+        headPanel = new GradientPanel();
         headPanel.setLayout(null);
-        add(headPanel); // add to your main panel
+        add(headPanel);
         
-        JLabel lblSubtitle = new JLabel("OFFICIAL LIST", SwingConstants.CENTER);
+        lblSubtitle = new JLabel("OFFICIAL LIST", SwingConstants.CENTER);
         lblSubtitle.setForeground(Color.WHITE);
         lblSubtitle.setFont(new Font("Arial", Font.BOLD, 30));
-        lblSubtitle.setBounds(10, 37, 1280, 30);
         lblSubtitle.setOpaque(false);
         headPanel.add(lblSubtitle);
         
-        JPanel panel = new JPanel();
-        panel.setBounds(320, 90, 960, 738);
-        panel.setLayout(null);
-        add(panel);
+        mainPanel = new JPanel();
+        mainPanel.setLayout(null);
+        add(mainPanel);
         
-        OvalPanel CaptainPanel = new OvalPanel();
-        CaptainPanel.setLayout(null);
-        CaptainPanel.setBackground(new Color(255, 255, 255));
-        CaptainPanel.setBounds(86, 29, 793, 169); // ADD THIS
-        panel.add(CaptainPanel);
+        // Create official panels array
+        officialPanels = new OvalPanel[3];
+        headerPanels = new OvalPanel[3];
+        titleLabels = new JLabel[3];
+        namePics = new JLabel[3];
         
-        OvalPanel GreenPanel = new OvalPanel();
-        GreenPanel.setLayout(null);
-        GreenPanel.setBackground(new Color(128, 255, 128));
-        GreenPanel.setBounds(0, 0, 793, 46);
-        CaptainPanel.add(GreenPanel);
+        String[] titles = {"BARANGAY CAPTAIN", "BARANGAY KAGAWAD", "BARANGAY TREASURER"};
         
-        JLabel lblNewLabel = new JLabel("BARANGAY CAPTAIN");
-        lblNewLabel.setForeground(new Color(0, 0, 0));
-        lblNewLabel.setFont(new Font("Tahoma", Font.BOLD, 15));
-        lblNewLabel.setBounds(64, 10, 179, 26);
-        GreenPanel.add(lblNewLabel);
+        // Load and scale profile picture icon
+        try {
+            ImageIcon cpticon = new ImageIcon(getClass().getResource("/img/pfp.png"));
+            Image cptimg = cpticon.getImage().getScaledInstance(75, 75, Image.SCALE_SMOOTH);
+            scaledIcon = new ImageIcon(cptimg);
+        } catch (Exception e) {
+            System.err.println("Profile picture not found: " + e.getMessage());
+            scaledIcon = null;
+        }
         
+        // Create 3 official panels
+        for (int i = 0; i < 3; i++) {
+            // Main container panel
+            officialPanels[i] = new OvalPanel();
+            officialPanels[i].setLayout(null);
+            officialPanels[i].setBackground(Color.WHITE);
+            mainPanel.add(officialPanels[i]);
+            
+            // Green header panel
+            headerPanels[i] = new OvalPanel();
+            headerPanels[i].setLayout(null);
+            headerPanels[i].setBackground(new Color(128, 255, 128));
+            officialPanels[i].add(headerPanels[i]);
+            
+            // Title label
+            titleLabels[i] = new JLabel(titles[i]);
+            titleLabels[i].setForeground(Color.BLACK);
+            titleLabels[i].setFont(new Font("Tahoma", Font.BOLD, 15));
+            headerPanels[i].add(titleLabels[i]);
+            
+            // Name and picture label
+            namePics[i] = new JLabel();
+            namePics[i].setText("BARANGAY OFFICIAL NAME");
+            namePics[i].setFont(new Font("Tahoma", Font.BOLD, 15));
+            namePics[i].setOpaque(false);
+            if (scaledIcon != null) {
+                namePics[i].setIcon(scaledIcon);
+            }
+            officialPanels[i].add(namePics[i]);
+        }
         
-        // ===== Logo =====
-        JLabel cptPic = new JLabel(); // no text
-        cptPic.setFont(new Font("Tahoma", Font.BOLD, 15));
-        cptPic.setText("BARANGAY CAPTAIN NAME");
+        // ===== Green Side Panel =====
+        greenSidePanel = new OvalPanel();
+        greenSidePanel.setLayout(null);
+        greenSidePanel.setBackground(new Color(0, 128, 64));
+        add(greenSidePanel);
         
-        ImageIcon cpticon = new ImageIcon(getClass().getResource("/img/pfp.png"));
-        // Scale the image to fit your desired size
-        Image cptimg = cpticon.getImage().getScaledInstance(75, 75, Image.SCALE_SMOOTH);
-        ImageIcon scaledIcon = new ImageIcon(cptimg);
+        // Create 4 white panels inside green side panel
+        whitePanels = new OvalPanel[4];
+        for (int i = 0; i < 4; i++) {
+            whitePanels[i] = new OvalPanel();
+            whitePanels[i].setLayout(null);
+            whitePanels[i].setBackground(Color.WHITE);
+            greenSidePanel.add(whitePanels[i]);
+        }
+        
+        // Add component listener for responsive layout
+        addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentResized(ComponentEvent e) {
+                resizeComponents();
+            }
+        });
+        
+        // Initial layout
+        resizeComponents();
+    }
+    
+    /**
+     * Resize and reposition all components based on current panel size
+     */
+    private void resizeComponents() {
+        int width = getWidth();
+        int height = getHeight();
+        
+        if (width == 0 || height == 0) {
+            width = 1280;
+            height = 1001;
+        }
 
-        cptPic.setIcon(scaledIcon);
-        cptPic.setBounds(30, 70, 350, 75); // position & size
-        cptPic.setOpaque(false); // important to show gradient behind
-        CaptainPanel.add(cptPic);
+        // Calculate proportions
+        double widthScale = width / 1280.0;
+        double heightScale = height / 1001.0;
+        double minScale = Math.min(widthScale, heightScale);
+
+        // ===== Header Panel =====
+        int headerHeight = (int)(90 * heightScale);
+        headPanel.setBounds(0, 0, width, headerHeight);
         
+        lblSubtitle.setFont(new Font("Arial", Font.BOLD, (int)(30 * minScale)));
+        lblSubtitle.setBounds(10, (int)(37 * heightScale), width - 20, (int)(30 * heightScale));
         
+        // ===== Main Panel =====
+        int mainPanelX = (int)(320 * widthScale);
+        int mainPanelY = headerHeight;
+        int mainPanelWidth = (int)(960 * widthScale);
+        int mainPanelHeight = (int)(738 * heightScale);
+        mainPanel.setBounds(mainPanelX, mainPanelY, mainPanelWidth, mainPanelHeight);
         
+        // ===== Official Panels (3 panels vertically stacked) =====
+        int officialPanelWidth = (int)(793 * widthScale);
+        int officialPanelHeight = (int)(169 * heightScale);
+        int officialPanelX = (mainPanelWidth - officialPanelWidth) / 2;
+        int[] officialYPositions = {
+            (int)(29 * heightScale),
+            (int)(232 * heightScale),
+            (int)(454 * heightScale)
+        };
         
+        for (int i = 0; i < 3; i++) {
+            officialPanels[i].setBounds(officialPanelX, officialYPositions[i], 
+                                        officialPanelWidth, officialPanelHeight);
+            
+            // Green header inside each panel
+            headerPanels[i].setBounds(0, 0, officialPanelWidth, (int)(46 * heightScale));
+            
+            // Title label
+            titleLabels[i].setFont(new Font("Tahoma", Font.BOLD, (int)(15 * minScale)));
+            int titleWidth = (int)(206 * widthScale);
+            titleLabels[i].setBounds((int)(64 * widthScale), (int)(10 * heightScale), 
+                                     titleWidth, (int)(26 * heightScale));
+            
+            // Profile picture and name
+            int picSize = (int)(75 * minScale);
+            namePics[i].setFont(new Font("Tahoma", Font.BOLD, (int)(15 * minScale)));
+            namePics[i].setBounds((int)(30 * widthScale), (int)(70 * heightScale), 
+                                  (int)(350 * widthScale), picSize);
+            
+            // Update icon size if available
+            if (scaledIcon != null) {
+                try {
+                    ImageIcon cpticon = new ImageIcon(getClass().getResource("/img/pfp.png"));
+                    Image cptimg = cpticon.getImage().getScaledInstance(picSize, picSize, Image.SCALE_SMOOTH);
+                    namePics[i].setIcon(new ImageIcon(cptimg));
+                } catch (Exception e) {
+                    // Keep existing icon
+                }
+            }
+        }
         
+        // ===== Green Side Panel =====
+        int sidePanelX = (int)(31 * widthScale);
+        int sidePanelY = (int)(254 * heightScale);
+        int sidePanelWidth = (int)(243 * widthScale);
+        int sidePanelHeight = (int)(364 * heightScale);
+        greenSidePanel.setBounds(sidePanelX, sidePanelY, sidePanelWidth, sidePanelHeight);
         
+        // White panels inside green side panel
+        int whitePanelWidth = (int)(202 * widthScale);
+        int whitePanelHeight = (int)(52 * heightScale);
+        int whitePanelX = (int)(20 * widthScale);
+        int[] whitePanelYPositions = {
+            (int)(44 * heightScale),
+            (int)(120 * heightScale),
+            (int)(196 * heightScale),
+            (int)(278 * heightScale)
+        };
         
-        
-        
-        OvalPanel CaptainPanel_1 = new OvalPanel();
-        CaptainPanel_1.setLayout(null);
-        CaptainPanel_1.setBackground(Color.WHITE);
-        CaptainPanel_1.setBounds(86, 232, 793, 169);
-        panel.add(CaptainPanel_1);
-        
-        OvalPanel GreenPanel_1 = new OvalPanel();
-        GreenPanel_1.setLayout(null);
-        GreenPanel_1.setBackground(new Color(128, 255, 128));
-        GreenPanel_1.setBounds(0, 0, 793, 46);
-        CaptainPanel_1.add(GreenPanel_1);
-        
-        JLabel lblBarangaySecretary = new JLabel("BARANGAY KAGAWAD");
-        lblBarangaySecretary.setForeground(Color.BLACK);
-        lblBarangaySecretary.setFont(new Font("Tahoma", Font.BOLD, 15));
-        lblBarangaySecretary.setBounds(64, 11, 179, 26);
-        GreenPanel_1.add(lblBarangaySecretary);
-        
-        JLabel cptPic_1 = new JLabel();
-        cptPic_1.setText("BARANGAY CAPTAIN NAME");
-        cptPic_1.setOpaque(false);
-        cptPic_1.setFont(new Font("Tahoma", Font.BOLD, 15));
-        cptPic_1.setBounds(30, 70, 350, 75);
-        cptPic_1.setIcon(scaledIcon);
-        CaptainPanel_1.add(cptPic_1);
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        OvalPanel CaptainPanel_1_1 = new OvalPanel();
-        CaptainPanel_1_1.setLayout(null);
-        CaptainPanel_1_1.setBackground(Color.WHITE);
-        CaptainPanel_1_1.setBounds(86, 454, 793, 169);
-        panel.add(CaptainPanel_1_1);
-        
-        OvalPanel GreenPanel_1_1 = new OvalPanel();
-        GreenPanel_1_1.setLayout(null);
-        GreenPanel_1_1.setBackground(new Color(128, 255, 128));
-        GreenPanel_1_1.setBounds(0, 0, 793, 46);
-        CaptainPanel_1_1.add(GreenPanel_1_1);
-        
-        JLabel lblBarangayTreasurer = new JLabel("BARANGAY TREASURER");
-        lblBarangayTreasurer.setForeground(Color.BLACK);
-        lblBarangayTreasurer.setFont(new Font("Tahoma", Font.BOLD, 15));
-        lblBarangayTreasurer.setBounds(53, 11, 206, 26);
-        GreenPanel_1_1.add(lblBarangayTreasurer);
-        
-        OvalPanel GreenPanel_2 = new OvalPanel();
-        GreenPanel_2.setLayout(null);
-        GreenPanel_2.setBackground(new Color(128, 255, 128));
-        GreenPanel_2.setBounds(31, 117, 243, 52);
-        add(GreenPanel_2);
-        
-        OvalPanel GreenSIdePanel = new OvalPanel();
-        GreenSIdePanel.setLayout(null);
-        GreenSIdePanel.setBackground(new Color(0, 128, 64));
-        GreenSIdePanel.setBounds(31, 254, 243, 364);
-        add(GreenSIdePanel);
-        
-        OvalPanel WhitePanel1 = new OvalPanel();
-        WhitePanel1.setLayout(null);
-        WhitePanel1.setBackground(new Color(255, 255, 255));
-        WhitePanel1.setBounds(20, 44, 202, 52);
-        GreenSIdePanel.add(WhitePanel1);
-        
-        OvalPanel WhitePanel2 = new OvalPanel();
-        WhitePanel2.setLayout(null);
-        WhitePanel2.setBackground(Color.WHITE);
-        WhitePanel2.setBounds(20, 120, 202, 52);
-        GreenSIdePanel.add(WhitePanel2);
-        
-        OvalPanel WhitePanel3 = new OvalPanel();
-        WhitePanel3.setLayout(null);
-        WhitePanel3.setBackground(Color.WHITE);
-        WhitePanel3.setBounds(20, 196, 202, 52);
-        GreenSIdePanel.add(WhitePanel3);
-        
-        OvalPanel WhitePanel4 = new OvalPanel();
-        WhitePanel4.setLayout(null);
-        WhitePanel4.setBackground(Color.WHITE);
-        WhitePanel4.setBounds(20, 278, 202, 52);
-        GreenSIdePanel.add(WhitePanel4);
+        for (int i = 0; i < 4; i++) {
+            whitePanels[i].setBounds(whitePanelX, whitePanelYPositions[i], 
+                                     whitePanelWidth, whitePanelHeight);
+        }
     }
 }

@@ -9,7 +9,7 @@ import java.util.List;
 
 public class Reportservice {
     
-    private static Connection getConnection() {
+    private static Connection getConnection() throws SQLException {
         return DatabaseManager.getConnection();
     }
 
@@ -17,6 +17,11 @@ public class Reportservice {
      * Creates the reports table if it doesn't exist
      */
     public static void initializeReportsTable() throws SQLException {
+        // Ensure connection is established
+        if (!DatabaseManager.isConnected()) {
+            DatabaseManager.connect();
+        }
+        
         Connection conn = getConnection();
         
         String createReportsTable = """
@@ -39,36 +44,39 @@ public class Reportservice {
             System.out.println("Reports table created/verified");
             
             // Add missing columns for existing databases
-            try {
-                stmt.execute("ALTER TABLE reports ADD COLUMN title TEXT");
-                System.out.println("Added title column");
-            } catch (SQLException e) {
-                if (!e.getMessage().contains("duplicate column")) {
-                    System.out.println("Title column already exists or error: " + e.getMessage());
-                }
-            }
-            
-            try {
-                stmt.execute("ALTER TABLE reports ADD COLUMN complaineeId INTEGER");
-                System.out.println("Added complaineeId column");
-            } catch (SQLException e) {
-                if (!e.getMessage().contains("duplicate column")) {
-                    System.out.println("ComplaineeId column already exists or error: " + e.getMessage());
-                }
-            }
+            addColumnIfNotExists(stmt, "reports", "title", "TEXT");
+            addColumnIfNotExists(stmt, "reports", "complaineeId", "INTEGER");
             
             // Rename citizenId to complainantId if needed
             try {
                 stmt.execute("ALTER TABLE reports RENAME COLUMN citizenId TO complainantId");
                 System.out.println("Renamed citizenId to complainantId");
             } catch (SQLException e) {
-                // Column doesn't exist or already renamed
+                // Column doesn't exist or already renamed - this is fine
+                if (!e.getMessage().contains("no such column")) {
+                    // Log other errors but don't fail
+                    System.out.println("Note: " + e.getMessage());
+                }
+            }
+        }
+    }
+    
+    private static void addColumnIfNotExists(Statement stmt, String tableName, String columnName, String columnType) {
+        try {
+            stmt.execute("ALTER TABLE " + tableName + " ADD COLUMN " + columnName + " " + columnType);
+            System.out.println("Added " + columnName + " column to " + tableName);
+        } catch (SQLException e) {
+            if (!e.getMessage().contains("duplicate column")) {
+                System.out.println("Note: Could not add " + columnName + " column: " + e.getMessage());
             }
         }
     }
 
     public static int addReport(String title, String description, String incidentDate, 
                                String status, int complainantId, int complaineeId) throws SQLException {
+        // Ensure connection
+        ensureConnection();
+        
         String sql = "INSERT INTO reports (title, description, incident_date, status, complainantId, complaineeId) VALUES (?, ?, ?, ?, ?, ?)";
         
         try (PreparedStatement ps = getConnection().prepareStatement(sql)) {
@@ -80,6 +88,7 @@ public class Reportservice {
             ps.setInt(6, complaineeId);
             ps.executeUpdate();
             
+            // Get the generated ID
             try (Statement stmt = getConnection().createStatement();
                  ResultSet rs = stmt.executeQuery("SELECT last_insert_rowid()")) {
                 if (rs.next()) {
@@ -93,6 +102,8 @@ public class Reportservice {
     }
 
     public static int addReport(String description, String incidentDate, String status) throws SQLException {
+        ensureConnection();
+        
         String sql = "INSERT INTO reports (description, incident_date, status) VALUES (?, ?, ?)";
         
         try (PreparedStatement ps = getConnection().prepareStatement(sql)) {
@@ -114,6 +125,8 @@ public class Reportservice {
     }
 
     public static int addReport(String description, String incidentDate, String status, int citizenId) throws SQLException {
+        ensureConnection();
+        
         String sql = "INSERT INTO reports (description, incident_date, status, complainantId) VALUES (?, ?, ?, ?)";
         
         try (PreparedStatement ps = getConnection().prepareStatement(sql)) {
@@ -136,6 +149,8 @@ public class Reportservice {
     }
 
     public static List<Report> getAllReports() throws SQLException {
+        ensureConnection();
+        
         List<Report> reports = new ArrayList<>();
         String sql = "SELECT * FROM reports ORDER BY created_date DESC";
         
@@ -149,6 +164,8 @@ public class Reportservice {
     }
 
     public static List<Report> getReportsByStatus(String status) throws SQLException {
+        ensureConnection();
+        
         List<Report> reports = new ArrayList<>();
         String sql = "SELECT * FROM reports WHERE status = ? ORDER BY created_date DESC";
         
@@ -164,6 +181,8 @@ public class Reportservice {
     }
 
     public static List<Report> getReportsByComplainantId(int complainantId) throws SQLException {
+        ensureConnection();
+        
         List<Report> reports = new ArrayList<>();
         String sql = "SELECT * FROM reports WHERE complainantId = ? ORDER BY created_date DESC";
         
@@ -179,6 +198,8 @@ public class Reportservice {
     }
 
     public static List<Report> getReportsByComplaineeId(int complaineeId) throws SQLException {
+        ensureConnection();
+        
         List<Report> reports = new ArrayList<>();
         String sql = "SELECT * FROM reports WHERE complaineeId = ? ORDER BY created_date DESC";
         
@@ -198,6 +219,8 @@ public class Reportservice {
     }
 
     public static int getReportCountByComplainantId(int complainantId) throws SQLException {
+        ensureConnection();
+        
         String sql = "SELECT COUNT(*) FROM reports WHERE complainantId = ?";
         try (PreparedStatement ps = getConnection().prepareStatement(sql)) {
             ps.setInt(1, complainantId);
@@ -211,6 +234,8 @@ public class Reportservice {
     }
 
     public static int getReportCountByComplaineeId(int complaineeId) throws SQLException {
+        ensureConnection();
+        
         String sql = "SELECT COUNT(*) FROM reports WHERE complaineeId = ?";
         try (PreparedStatement ps = getConnection().prepareStatement(sql)) {
             ps.setInt(1, complaineeId);
@@ -228,6 +253,8 @@ public class Reportservice {
     }
 
     public static List<Report> getRecentReports(int limit) throws SQLException {
+        ensureConnection();
+        
         List<Report> reports = new ArrayList<>();
         String sql = "SELECT * FROM reports ORDER BY created_date DESC LIMIT ?";
         
@@ -244,6 +271,8 @@ public class Reportservice {
 
     public static void updateReport(int id, String title, String description, String incidentDate, 
                                    String status, int complainantId, int complaineeId) throws SQLException {
+        ensureConnection();
+        
         String sql = "UPDATE reports SET title = ?, description = ?, incident_date = ?, status = ?, complainantId = ?, complaineeId = ? WHERE id = ?";
         try (PreparedStatement ps = getConnection().prepareStatement(sql)) {
             ps.setString(1, title);
@@ -259,6 +288,8 @@ public class Reportservice {
     }
 
     public static void updateReport(int id, String description, String incidentDate, String status) throws SQLException {
+        ensureConnection();
+        
         String sql = "UPDATE reports SET description = ?, incident_date = ?, status = ? WHERE id = ?";
         try (PreparedStatement ps = getConnection().prepareStatement(sql)) {
             ps.setString(1, description);
@@ -271,6 +302,8 @@ public class Reportservice {
     }
 
     public static void updateReport(int id, String description, String incidentDate, String status, int citizenId) throws SQLException {
+        ensureConnection();
+        
         String sql = "UPDATE reports SET description = ?, incident_date = ?, status = ?, complainantId = ? WHERE id = ?";
         try (PreparedStatement ps = getConnection().prepareStatement(sql)) {
             ps.setString(1, description);
@@ -284,6 +317,8 @@ public class Reportservice {
     }
 
     public static void settleReport(int id, String settlementDescription) throws SQLException {
+        ensureConnection();
+        
         String sql = "UPDATE reports SET status = 'Settled', settlement_description = ?, settled_date = datetime('now') WHERE id = ?";
         try (PreparedStatement ps = getConnection().prepareStatement(sql)) {
             ps.setString(1, settlementDescription);
@@ -294,6 +329,8 @@ public class Reportservice {
     }
 
     public static void deleteReport(int id) throws SQLException {
+        ensureConnection();
+        
         String sql = "DELETE FROM reports WHERE id = ?";
         try (PreparedStatement ps = getConnection().prepareStatement(sql)) {
             ps.setInt(1, id);
@@ -303,6 +340,8 @@ public class Reportservice {
     }
 
     public static int getReportCountByStatus(String status) throws SQLException {
+        ensureConnection();
+        
         String sql = "SELECT COUNT(*) FROM reports WHERE status = ?"; 
         try (PreparedStatement ps = getConnection().prepareStatement(sql)) {
             ps.setString(1, status);
@@ -316,6 +355,8 @@ public class Reportservice {
     }
 
     public static Report getReportById(int id) throws SQLException {
+        ensureConnection();
+        
         String sql = "SELECT * FROM reports WHERE id = ?";
         try (PreparedStatement ps = getConnection().prepareStatement(sql)) {
             ps.setInt(1, id);
@@ -329,6 +370,8 @@ public class Reportservice {
     }
 
     public static List<Report> searchReports(String keyword) throws SQLException {
+        ensureConnection();
+        
         List<Report> reports = new ArrayList<>();
         String sql = "SELECT * FROM reports WHERE title LIKE ? OR description LIKE ? ORDER BY created_date DESC";
         
@@ -346,6 +389,8 @@ public class Reportservice {
     }
 
     public static List<Report> getReportsByParties(int complainantId, int complaineeId) throws SQLException {
+        ensureConnection();
+        
         List<Report> reports = new ArrayList<>();
         String sql = "SELECT * FROM reports WHERE complainantId = ? AND complaineeId = ? ORDER BY created_date DESC";
         
@@ -360,11 +405,21 @@ public class Reportservice {
         }
         return reports;
     }
+    
+    /**
+     * Ensures database connection is established
+     */
+    private static void ensureConnection() throws SQLException {
+        if (!DatabaseManager.isConnected()) {
+            DatabaseManager.connect();
+        }
+    }
 
     private static Report mapReport(ResultSet rs) throws SQLException {
         Report report = new Report();
         report.setId(rs.getInt("id"));
         
+        // Handle title (might not exist in old schema)
         try {
             String title = rs.getString("title");
             report.setTitle(title != null ? title : "");
@@ -375,10 +430,18 @@ public class Reportservice {
         report.setDescription(rs.getString("description"));
         report.setIncidentDate(rs.getString("incident_date"));
         report.setStatus(rs.getString("status"));
-        report.setSettlementDescription(rs.getString("settlement_description"));
-        report.setCreatedDate(rs.getString("created_date"));
-        report.setSettledDate(rs.getString("settled_date"));
         
+        // Handle settlement_description (might be null)
+        String settlementDesc = rs.getString("settlement_description");
+        report.setSettlementDescription(settlementDesc != null ? settlementDesc : "");
+        
+        report.setCreatedDate(rs.getString("created_date"));
+        
+        // Handle settled_date (might be null)
+        String settledDate = rs.getString("settled_date");
+        report.setSettledDate(settledDate != null ? settledDate : "");
+        
+        // Handle complainantId (might not exist or be null)
         try {
             int complainantId = rs.getInt("complainantId");
             report.setComplainantId(rs.wasNull() ? -1 : complainantId);
@@ -386,6 +449,7 @@ public class Reportservice {
             report.setComplainantId(-1);
         }
         
+        // Handle complaineeId (might not exist or be null)
         try {
             int complaineeId = rs.getInt("complaineeId");
             report.setComplaineeId(rs.wasNull() ? -1 : complaineeId);

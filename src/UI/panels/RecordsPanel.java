@@ -12,87 +12,90 @@ import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import java.awt.*;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 
 /**
  * RecordsPanel — shows the resident records list with search and action buttons.
- *
- * All print buttons now functional:
- *  - Print Residency uses PrintResidency.print()
- *  - Print Clearance uses PrintClearance.print()
- *  - Print Indigency uses PrintIndigency.print()
+ * Now fully scalable and responsive to screen size changes.
  */
 public class RecordsPanel extends JPanel {
 
     private final JTextField searchField;
     private final ResidenceTable table;
+    private final HomePanel homePanel;
+    
+    // Components that need to be repositioned
+    private GradientPanel headPanel;
+    private JLabel lblTitle;
+    private OvalPanel greenSidePanel;
+    private OvalPanel[] whitePanels;
+    private JLabel lblSearch;
+    private OvalButton btnAddResidence;
+    private OvalButton btnPrintResidence;
+    private OvalButton btnPrintClearance;
+    private OvalButton btnPrintIndigency;
+    private JPanel tablePanel;
 
     public RecordsPanel(HomePanel homePanel) {
-
+        this.homePanel = homePanel;
+        
         setLayout(null);
         setBackground(Color.WHITE);
         setPreferredSize(new Dimension(1280, 1001));
 
         // ===== HEADER =====
-        GradientPanel headPanel = new GradientPanel();
-        headPanel.setBounds(0, 0, 1280, 90);
+        headPanel = new GradientPanel();
         add(headPanel);
         headPanel.setLayout(new BorderLayout());
 
-        JLabel lblTitle = new JLabel("RECORDS LIST", SwingConstants.CENTER);
+        lblTitle = new JLabel("RECORDS LIST", SwingConstants.CENTER);
         lblTitle.setForeground(Color.WHITE);
         lblTitle.setFont(new Font("Arial", Font.BOLD, 30));
         headPanel.add(lblTitle, BorderLayout.CENTER);
 
         // ===== LEFT SIDE PANEL =====
-        OvalPanel greenSidePanel = new OvalPanel();
+        greenSidePanel = new OvalPanel();
         greenSidePanel.setLayout(null);
         greenSidePanel.setBackground(new Color(0, 128, 64));
-        greenSidePanel.setBounds(31, 254, 243, 364);
         add(greenSidePanel);
 
+        whitePanels = new OvalPanel[4];
         for (int i = 0; i < 4; i++) {
-            OvalPanel wp = new OvalPanel();
-            wp.setBackground(Color.WHITE);
-            wp.setBounds(20, 44 + i * 76, 202, 52);
-            greenSidePanel.add(wp);
+            whitePanels[i] = new OvalPanel();
+            whitePanels[i].setBackground(Color.WHITE);
+            greenSidePanel.add(whitePanels[i]);
         }
 
         // ===== SEARCH =====
-        JLabel lblSearch = new JLabel("SEARCH RESIDENCE:");
+        lblSearch = new JLabel("SEARCH RESIDENCE:");
         lblSearch.setFont(new Font("Tahoma", Font.BOLD, 14));
         lblSearch.setForeground(new Color(0, 128, 0));
         lblSearch.setHorizontalAlignment(SwingConstants.CENTER);
-        lblSearch.setBounds(264, 142, 181, 20);
         add(lblSearch);
 
         searchField = new JTextField();
-        searchField.setBounds(455, 137, 286, 26);
         add(searchField);
 
         // ===== BUTTONS =====
-        OvalButton btnAddResidence = new OvalButton("ADD RESIDENCE");
+        btnAddResidence = new OvalButton("ADD RESIDENCE");
         btnAddResidence.setFont(new Font("Tahoma", Font.BOLD, 13));
-        btnAddResidence.setBounds(400, 190, 181, 41);
         add(btnAddResidence);
 
-        OvalButton btnPrintResidence = new OvalButton("PRINT RESIDENCY");
+        btnPrintResidence = new OvalButton("PRINT RESIDENCY");
         btnPrintResidence.setFont(new Font("Tahoma", Font.BOLD, 13));
-        btnPrintResidence.setBounds(600, 190, 173, 41);
         add(btnPrintResidence);
 
-        OvalButton btnPrintClearance = new OvalButton("PRINT CLEARANCE");
+        btnPrintClearance = new OvalButton("PRINT CLEARANCE");
         btnPrintClearance.setFont(new Font("Tahoma", Font.BOLD, 13));
-        btnPrintClearance.setBounds(800, 190, 181, 41);
         add(btnPrintClearance);
 
-        OvalButton btnPrintIndigency = new OvalButton("PRINT INDIGENCY");
+        btnPrintIndigency = new OvalButton("PRINT INDIGENCY");
         btnPrintIndigency.setFont(new Font("Tahoma", Font.BOLD, 13));
-        btnPrintIndigency.setBounds(1000, 190, 175, 41);
         add(btnPrintIndigency);
 
         // ===== TABLE =====
-        JPanel tablePanel = new JPanel(new BorderLayout());
-        tablePanel.setBounds(341, 242, 902, 532);
+        tablePanel = new JPanel(new BorderLayout());
         tablePanel.setBorder(BorderFactory.createLineBorder(new Color(102, 170, 51), 2));
         add(tablePanel);
 
@@ -165,6 +168,108 @@ public class RecordsPanel extends JPanel {
             }
             PrintIndigency.print(id);
         });
+        
+        // Add component listener for responsive layout
+        addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentResized(ComponentEvent e) {
+                resizeComponents();
+            }
+        });
+        
+        // Initial layout
+        resizeComponents();
+    }
+
+    /**
+     * Resize and reposition all components based on current panel size
+     */
+    private void resizeComponents() {
+        int width = getWidth();
+        int height = getHeight();
+        
+        if (width == 0 || height == 0) {
+            width = 1280;
+            height = 1001;
+        }
+
+        // Calculate proportions
+        double widthScale = width / 1280.0;
+        double heightScale = height / 1001.0;
+        double minScale = Math.min(widthScale, heightScale);
+
+        // ===== Header Panel =====
+        int headerHeight = (int)(90 * heightScale);
+        headPanel.setBounds(0, 0, width, headerHeight);
+        
+        lblTitle.setFont(new Font("Arial", Font.BOLD, (int)(30 * minScale)));
+
+        // ===== Green Side Panel =====
+        int sidePanelX = (int)(31 * widthScale);
+        int sidePanelY = (int)(254 * heightScale);
+        int sidePanelWidth = (int)(243 * widthScale);
+        int sidePanelHeight = (int)(364 * heightScale);
+        greenSidePanel.setBounds(sidePanelX, sidePanelY, sidePanelWidth, sidePanelHeight);
+
+        // White panels inside green side panel
+        int whitePanelWidth = (int)(202 * widthScale);
+        int whitePanelHeight = (int)(52 * heightScale);
+        int whitePanelX = (int)(20 * widthScale);
+        
+        for (int i = 0; i < 4; i++) {
+            int whitePanelY = (int)((44 + i * 76) * heightScale);
+            whitePanels[i].setBounds(whitePanelX, whitePanelY, whitePanelWidth, whitePanelHeight);
+        }
+
+        // ===== Search Label and Field =====
+        int searchLabelX = (int)(264 * widthScale);
+        int searchLabelY = (int)(142 * heightScale);
+        int searchLabelWidth = (int)(181 * widthScale);
+        int searchLabelHeight = (int)(20 * heightScale);
+        lblSearch.setFont(new Font("Tahoma", Font.BOLD, (int)(14 * minScale)));
+        lblSearch.setBounds(searchLabelX, searchLabelY, searchLabelWidth, searchLabelHeight);
+
+        int searchFieldX = (int)(455 * widthScale);
+        int searchFieldY = (int)(137 * heightScale);
+        int searchFieldWidth = (int)(286 * widthScale);
+        int searchFieldHeight = (int)(26 * heightScale);
+        searchField.setBounds(searchFieldX, searchFieldY, searchFieldWidth, searchFieldHeight);
+
+        // ===== Buttons =====
+        int buttonY = (int)(190 * heightScale);
+        int buttonHeight = (int)(41 * heightScale);
+        int buttonFontSize = (int)(13 * minScale);
+        
+        int btnAddX = (int)(400 * widthScale);
+        int btnAddWidth = (int)(181 * widthScale);
+        btnAddResidence.setBounds(btnAddX, buttonY, btnAddWidth, buttonHeight);
+        btnAddResidence.setFont(new Font("Tahoma", Font.BOLD, buttonFontSize));
+
+        int btnPrintResX = (int)(600 * widthScale);
+        int btnPrintResWidth = (int)(173 * widthScale);
+        btnPrintResidence.setBounds(btnPrintResX, buttonY, btnPrintResWidth, buttonHeight);
+        btnPrintResidence.setFont(new Font("Tahoma", Font.BOLD, buttonFontSize));
+
+        int btnPrintClearX = (int)(800 * widthScale);
+        int btnPrintClearWidth = (int)(181 * widthScale);
+        btnPrintClearance.setBounds(btnPrintClearX, buttonY, btnPrintClearWidth, buttonHeight);
+        btnPrintClearance.setFont(new Font("Tahoma", Font.BOLD, buttonFontSize));
+
+        int btnPrintIndigX = (int)(1000 * widthScale);
+        int btnPrintIndigWidth = (int)(175 * widthScale);
+        btnPrintIndigency.setBounds(btnPrintIndigX, buttonY, btnPrintIndigWidth, buttonHeight);
+        btnPrintIndigency.setFont(new Font("Tahoma", Font.BOLD, buttonFontSize));
+
+        // ===== Table Panel =====
+        int tablePanelX = (int)(341 * widthScale);
+        int tablePanelY = (int)(242 * heightScale);
+        int tablePanelWidth = (int)(902 * widthScale);
+        int tablePanelHeight = (int)(532 * heightScale);
+        tablePanel.setBounds(tablePanelX, tablePanelY, tablePanelWidth, tablePanelHeight);
+        
+        // Scale border thickness
+        int borderThickness = Math.max(1, (int)(2 * minScale));
+        tablePanel.setBorder(BorderFactory.createLineBorder(new Color(102, 170, 51), borderThickness));
     }
 
     /** Returns the DB id of the currently selected row, or -1 if nothing is selected. */

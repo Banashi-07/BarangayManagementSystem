@@ -53,8 +53,15 @@ public class CertificateService {
 
     static {
         try {
+            // Ensure database connection is ready
+            if (!DatabaseManager.isConnected()) {
+                DatabaseManager.connect();
+            }
             // Only create templates directory, no output directory needed anymore
             new File(TEMPLATES_DIR).mkdirs();
+        } catch (SQLException e) {
+            System.err.println("Failed to connect to database in CertificateService: " + e.getMessage());
+            e.printStackTrace();
         } catch (Exception e) {
             System.err.println("Failed to create templates directory: " + e.getMessage());
         }
@@ -69,9 +76,17 @@ public class CertificateService {
         }));
     }
 
+    // Helper method to ensure connection
+    private static void ensureConnection() throws SQLException {
+        if (!DatabaseManager.isConnected()) {
+            DatabaseManager.connect();
+        }
+    }
+
     public static void generateClearance(int residentId, String purpose) {
         File tempFile = null;
         try {
+            ensureConnection();
             Resident resident = DatabaseManager.getResidentById(residentId);
             if (resident == null) {
                 throw new IllegalArgumentException("Resident not found with ID: " + residentId);
@@ -150,9 +165,16 @@ public class CertificateService {
             // Open the temporary file and schedule deletion
             openAndDeleteLater(tempFile);
             
-        } catch (SQLException | IOException e) {
+        } catch (SQLException e) {
+            System.err.println("Database error generating clearance: " + e.getMessage());
             e.printStackTrace();
-            // Clean up on error
+            if (tempFile != null && tempFile.exists()) {
+                tempFile.delete();
+            }
+            throw new RuntimeException("Failed to generate clearance certificate: " + e.getMessage());
+        } catch (IOException e) {
+            System.err.println("IO error generating clearance: " + e.getMessage());
+            e.printStackTrace();
             if (tempFile != null && tempFile.exists()) {
                 tempFile.delete();
             }
@@ -163,6 +185,7 @@ public class CertificateService {
     public static void generateResidency(int residentId, String purpose) {
         File tempFile = null;
         try {
+            ensureConnection();
             Resident resident = DatabaseManager.getResidentById(residentId);
             if (resident == null) {
                 throw new IllegalArgumentException("Resident not found with ID: " + residentId);
@@ -253,6 +276,7 @@ public class CertificateService {
     public static void generateIndigency(int residentId, String purpose) {
         File tempFile = null;
         try {
+            ensureConnection();
             Resident resident = DatabaseManager.getResidentById(residentId);
             if (resident == null) {
                 throw new IllegalArgumentException("Resident not found with ID: " + residentId);

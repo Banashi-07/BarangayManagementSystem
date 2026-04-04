@@ -11,9 +11,9 @@ import java.util.List;
 
 /**
  * ResidenceTable
- * - Column 0‥5 : display data (NAME, AGE, SEX, ADDRESS, PUROK, STATUS)
- * - Column 6   : ACTION buttons (renderer + editor)
- * - Column 7   : hidden integer ID (used by ActionButtonEditor)
+ * - Column 0 : display data (NAME, AGE, SEX, ADDRESS, PUROK, STATUS)
+ * - Column 6 : ACTION buttons (renderer + editor)
+ * - Column 7 : hidden integer ID (used by ActionButtonEditor)
  * 
  * AGE is now computed from birthdate via ResidentRow.getAge()
  */
@@ -21,7 +21,7 @@ public class ResidenceTable extends JTable {
 
     private final DefaultTableModel model;
 
-    /** Parallel list that maps table row index → resident DB id */
+    /** Parallel list that maps table row index → resident db id */
     private final List<Integer> rowIds = new ArrayList<>();
 
     public ResidenceTable(HomePanel homePanel) {
@@ -61,9 +61,6 @@ public class ResidenceTable extends JTable {
         setFont(new Font("Tahoma", Font.PLAIN, 12));
         setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
 
-        getTableHeader().setReorderingAllowed(false);
-        getTableHeader().setResizingAllowed(false);
-
         // ===== COLUMN WIDTHS =====
         getColumnModel().getColumn(0).setPreferredWidth(150); // NAME
         getColumnModel().getColumn(1).setPreferredWidth(60);  // AGE
@@ -77,21 +74,38 @@ public class ResidenceTable extends JTable {
         getColumnModel().getColumn(6).setCellRenderer(new ActionButtonRenderer());
         getColumnModel().getColumn(6).setCellEditor(new ActionButtonEditor(new JCheckBox(), this, homePanel));
 
-        // ===== HEADER =====
-        JTableHeader header = getTableHeader();
-        header.setBackground(new Color(102, 170, 51));
-        header.setForeground(Color.WHITE);
-        header.setFont(new Font("Arial", Font.BOLD, 14));
-        header.setPreferredSize(new Dimension(100, 40));
+        // ===== HEADER SETUP - FIXED =====
+        setupTableHeader();
 
-        // ===== ROW RENDERER =====
-        setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
+        // Create the custom renderer to reuse
+        TableCellRenderer customRenderer = createTableCellRenderer();
+        
+        // ===== ROW RENDERER - For Object class =====
+        setDefaultRenderer(Object.class, customRenderer);
+        
+        // ===== AGE COLUMN RENDERER - FIX THE BLUE BACKGROUND =====
+        setDefaultRenderer(Integer.class, customRenderer);
+
+        refresh();
+    }
+
+    /**
+     * Creates a consistent table cell renderer for all columns
+     */
+    private TableCellRenderer createTableCellRenderer() {
+        return new DefaultTableCellRenderer() {
             @Override
             public Component getTableCellRendererComponent(JTable table, Object value,
                                                            boolean isSelected, boolean hasFocus,
                                                            int row, int column) {
                 Component c = super.getTableCellRendererComponent(
                         table, value, isSelected, hasFocus, row, column);
+                
+                // Skip styling for ACTION column (column 6)
+                if (column == 6) {
+                    return c;
+                }
+                
                 if (isSelected) {
                     c.setBackground(new Color(102, 170, 51));
                     c.setForeground(Color.WHITE);
@@ -105,9 +119,45 @@ public class ResidenceTable extends JTable {
                 setHorizontalAlignment(CENTER);
                 return c;
             }
-        });
+        };
+    }
 
-        refresh();
+    /**
+     * Setup table header with proper visibility
+     */
+    private void setupTableHeader() {
+        JTableHeader header = getTableHeader();
+        header.setBackground(new Color(102, 170, 51));
+        header.setForeground(Color.WHITE);
+        header.setFont(new Font("Arial", Font.BOLD, 14));
+        header.setPreferredSize(new Dimension(100, 40));
+        header.setOpaque(true);
+        header.setVisible(true);
+        
+        // Ensure header is properly set
+        setTableHeader(header);
+        
+        // Make sure header is not null and visible
+        if (getTableHeader() != null) {
+            getTableHeader().setDefaultRenderer(new HeaderRenderer());
+        }
+    }
+
+    /**
+     * Custom header renderer for better appearance
+     */
+    private class HeaderRenderer extends DefaultTableCellRenderer {
+        @Override
+        public Component getTableCellRendererComponent(JTable table, Object value,
+                                                       boolean isSelected, boolean hasFocus,
+                                                       int row, int column) {
+            Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+            c.setBackground(new Color(102, 170, 51));
+            c.setForeground(Color.WHITE);
+            c.setFont(new Font("Arial", Font.BOLD, 14));
+            setHorizontalAlignment(CENTER);
+            return c;
+        }
     }
 
     /**
@@ -156,5 +206,11 @@ public class ResidenceTable extends JTable {
             });
             rowIds.add(r.id);
         }
+        
+        // Repaint to ensure header is visible after data load
+        if (getTableHeader() != null) {
+            getTableHeader().repaint();
+        }
+        repaint();
     }
 }

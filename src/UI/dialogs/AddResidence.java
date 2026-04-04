@@ -163,8 +163,8 @@ public class AddResidence extends JDialog {
         addFieldLabel(panel, gbc, "Purok/Zone");
         
         purokComboBox = createStyledComboBox(new String[]{
-            "Select Purok", "Purok 1", "Purok 2", "Purok 3", 
-            "Purok 4", "Purok 5", "Purok 6", "Purok 7"
+            "Select Purok", "1", "2", " 3", 
+            "4", "5", "6", "7"
         });
         gbc.gridy = y++;
         panel.add(purokComboBox, gbc);

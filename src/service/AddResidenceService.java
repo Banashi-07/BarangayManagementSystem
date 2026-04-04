@@ -10,7 +10,15 @@ public class AddResidenceService {
      */
     public AddResidenceService() {
         // Ensure database connection is established
-        DatabaseManager.connect();
+        try {
+            if (!DatabaseManager.isConnected()) {
+                DatabaseManager.connect();
+            }
+        } catch (SQLException e) {
+            System.err.println("Failed to connect to database: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Cannot initialize database connection", e);
+        }
     }
     
     /**
@@ -27,35 +35,52 @@ public class AddResidenceService {
     public boolean addResidence(String name, String age, String sex, 
 		            String address, String purok, String status, 
 		            String houseNo) {
-		try {
-		// Validate inputs
-		if (name == null || name.trim().isEmpty()) {
-		throw new IllegalArgumentException("Name is required");
-		}
-		
-		// Combine address components
-		String fullAddress = buildFullAddress(address, purok, houseNo);
-		
-		// Convert age to birthdate (approximate - you might want to add a date picker instead)
-		String birthdate = calculateBirthdateFromAge(age);
-		
-		// Contact field - you might want to add this to your dialog
-		String contact = ""; // Default empty, you can add a contact field to dialog
-		
-		// Add to database using the UPDATED DatabaseManager with sex and purok
-		DatabaseManager.addResident(name, sex, fullAddress, purok, contact, birthdate, status);
-		
-		return true;
-		
-		} catch (SQLException e) {
-		System.err.println("Database error while adding residence: " + e.getMessage());
-		e.printStackTrace();
-		return false;
-		} catch (IllegalArgumentException e) {
-		System.err.println("Validation error: " + e.getMessage());
-		return false;
-		}
-	}
+        try {
+            // Validate inputs
+            if (name == null || name.trim().isEmpty()) {
+                throw new IllegalArgumentException("Name is required");
+            }
+            
+            // Combine address components
+            String fullAddress = buildFullAddress(address, purok, houseNo);
+            
+            // Convert age to birthdate (approximate - you might want to add a date picker instead)
+            String birthdate = calculateBirthdateFromAge(age);
+            
+            // Contact field - you might want to add this to your dialog
+            String contact = ""; // Default empty, you can add a contact field to dialog
+            
+            // Make sure we have a valid connection
+            if (!DatabaseManager.isConnected()) {
+                DatabaseManager.connect();
+            }
+            
+            // Add to database using the UPDATED DatabaseManager with sex and purok
+            DatabaseManager.addResident(name, sex, fullAddress, purok, contact, birthdate, status);
+            
+            return true;
+            
+        } catch (SQLException e) {
+            System.err.println("Database error while adding residence: " + e.getMessage());
+            e.printStackTrace();
+            
+            // Try to reconnect and retry once
+            try {
+                DatabaseManager.connect();
+                // Retry the operation
+                String fullAddress = buildFullAddress(address, purok, houseNo);
+                String birthdate = calculateBirthdateFromAge(age);
+                DatabaseManager.addResident(name, sex, fullAddress, purok, "", birthdate, status);
+                return true;
+            } catch (SQLException retryError) {
+                System.err.println("Retry failed: " + retryError.getMessage());
+                return false;
+            }
+        } catch (IllegalArgumentException e) {
+            System.err.println("Validation error: " + e.getMessage());
+            return false;
+        }
+    }
     
     /**
      * Build full address from components
@@ -77,6 +102,11 @@ public class AddResidenceService {
             fullAddress.append("Purok ").append(purok.trim());
         }
         
+        // Add barangay if address is empty
+        if (fullAddress.length() == 0) {
+            fullAddress.append("San Miguel, Agoo, La Union");
+        }
+        
         return fullAddress.toString();
     }
     
@@ -91,7 +121,7 @@ public class AddResidenceService {
             java.time.LocalDate birthdate = now.minusYears(age);
             return birthdate.toString(); // Returns YYYY-MM-DD format for SQLite
         } catch (NumberFormatException e) {
-            return ""; // Return empty string if age is invalid
+            return "2000-01-01"; // Return default date if age is invalid
         }
     }
     
