@@ -11,9 +11,11 @@ import java.util.List;
 
 /**
  * ResidenceTable
- * - Column 0‥5 : display data
+ * - Column 0‥5 : display data (NAME, AGE, SEX, ADDRESS, PUROK, STATUS)
  * - Column 6   : ACTION buttons (renderer + editor)
  * - Column 7   : hidden integer ID (used by ActionButtonEditor)
+ * 
+ * AGE is now computed from birthdate via ResidentRow.getAge()
  */
 public class ResidenceTable extends JTable {
 
@@ -36,7 +38,9 @@ public class ResidenceTable extends JTable {
 
             @Override
             public Class<?> getColumnClass(int columnIndex) {
-                return columnIndex == 7 ? Integer.class : Object.class;
+                if (columnIndex == 1) return Integer.class; // AGE column
+                if (columnIndex == 7) return Integer.class; // ID column
+                return Object.class;
             }
         };
         setModel(model);
@@ -61,13 +65,13 @@ public class ResidenceTable extends JTable {
         getTableHeader().setResizingAllowed(false);
 
         // ===== COLUMN WIDTHS =====
-        getColumnModel().getColumn(0).setPreferredWidth(150);
-        getColumnModel().getColumn(1).setPreferredWidth(60);
-        getColumnModel().getColumn(2).setPreferredWidth(70);
-        getColumnModel().getColumn(3).setPreferredWidth(200);
-        getColumnModel().getColumn(4).setPreferredWidth(90);
-        getColumnModel().getColumn(5).setPreferredWidth(110);
-        getColumnModel().getColumn(6).setPreferredWidth(220);
+        getColumnModel().getColumn(0).setPreferredWidth(150); // NAME
+        getColumnModel().getColumn(1).setPreferredWidth(60);  // AGE
+        getColumnModel().getColumn(2).setPreferredWidth(70);  // SEX
+        getColumnModel().getColumn(3).setPreferredWidth(200); // ADDRESS
+        getColumnModel().getColumn(4).setPreferredWidth(90);  // PUROK
+        getColumnModel().getColumn(5).setPreferredWidth(110); // STATUS
+        getColumnModel().getColumn(6).setPreferredWidth(220); // ACTION
 
         // ===== ACTION COLUMN =====
         getColumnModel().getColumn(6).setCellRenderer(new ActionButtonRenderer());
@@ -139,8 +143,16 @@ public class ResidenceTable extends JTable {
         rowIds.clear();
 
         for (ResidentDAO.ResidentRow r : rows) {
+            // Age is computed dynamically from birthdate via getAge()
             model.addRow(new Object[]{
-                r.name, r.age, r.sex, r.address, r.purok, r.status, "ACTION", r.id
+                r.name, 
+                r.getAge(),  // ← Computed from birthdate
+                r.sex, 
+                r.address, 
+                r.purok, 
+                r.status, 
+                "ACTION", 
+                r.id
             });
             rowIds.add(r.id);
         }

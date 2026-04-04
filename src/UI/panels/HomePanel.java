@@ -1,6 +1,8 @@
 package UI.panels;
 
 import database.DatabaseManager;
+import service.StatisticsService;
+import service.Reportservice;
 import UI.components.OvalPanel;
 import UI.components.CircularButton;
 
@@ -9,7 +11,6 @@ import java.awt.*;
 
 public class HomePanel extends JPanel {
 
-    // Declare labels as class variables
     private JLabel lblHouseholdCount, lblPopulationCount, lblVotersCount;
     private JLabel lblFemaleCount, lblMaleCount, lblSeniorCount;
     private JLabel lblPWDCount, lblReportCasesCount;
@@ -28,10 +29,14 @@ public class HomePanel extends JPanel {
 
         // ===== Logo =====
         JLabel lblLogo = new JLabel();
-        ImageIcon icon = new ImageIcon(getClass().getResource("/img/logoo.png"));
-        Image img = icon.getImage().getScaledInstance(200, 200, Image.SCALE_SMOOTH);
-        ImageIcon scaledIcon = new ImageIcon(img);
-        lblLogo.setIcon(scaledIcon);
+        try {
+            ImageIcon icon = new ImageIcon(getClass().getResource("/img/logoo.png"));
+            Image img = icon.getImage().getScaledInstance(200, 200, Image.SCALE_SMOOTH);
+            ImageIcon scaledIcon = new ImageIcon(img);
+            lblLogo.setIcon(scaledIcon);
+        } catch (Exception e) {
+            System.err.println("Logo not found: " + e.getMessage());
+        }
         lblLogo.setBounds(70, 5, 200, 200);
         lblLogo.setOpaque(false);
         headPanel.add(lblLogo);
@@ -61,7 +66,6 @@ public class HomePanel extends JPanel {
         lblParagraph.setFont(new Font("Arial", Font.BOLD, 22));
         lblParagraph.setBounds(0, 0, 1080, 50);
         paragraphPanel.add(lblParagraph);
-
         add(paragraphPanel);
 
         JTextPane txtpnloremIpsumDolor = new JTextPane();
@@ -119,77 +123,81 @@ public class HomePanel extends JPanel {
         add(statsPanel);
 
         // ===== STATS PANEL ICONS =====
-        ImageIcon hh = new ImageIcon(CircularButton.class.getResource("/img/1.png"));
-        Image hhimg = hh.getImage().getScaledInstance(100, 100, Image.SCALE_SMOOTH);
-        ImageIcon hhicon = new ImageIcon(hhimg);
+        try {
+            ImageIcon hh = new ImageIcon(CircularButton.class.getResource("/img/1.png"));
+            Image hhimg = hh.getImage().getScaledInstance(100, 100, Image.SCALE_SMOOTH);
+            ImageIcon hhicon = new ImageIcon(hhimg);
 
-        ImageIcon pp = new ImageIcon(CircularButton.class.getResource("/img/2.png"));
-        Image ppimg = pp.getImage().getScaledInstance(100, 100, Image.SCALE_SMOOTH);
-        ImageIcon ppicon = new ImageIcon(ppimg);
+            ImageIcon pp = new ImageIcon(CircularButton.class.getResource("/img/2.png"));
+            Image ppimg = pp.getImage().getScaledInstance(100, 100, Image.SCALE_SMOOTH);
+            ImageIcon ppicon = new ImageIcon(ppimg);
 
-        ImageIcon rv = new ImageIcon(CircularButton.class.getResource("/img/3.png"));
-        Image rvimg = rv.getImage().getScaledInstance(100, 100, Image.SCALE_SMOOTH);
-        ImageIcon rvicon = new ImageIcon(rvimg);
+            ImageIcon rv = new ImageIcon(CircularButton.class.getResource("/img/3.png"));
+            Image rvimg = rv.getImage().getScaledInstance(100, 100, Image.SCALE_SMOOTH);
+            ImageIcon rvicon = new ImageIcon(rvimg);
 
-        ImageIcon fem = new ImageIcon(CircularButton.class.getResource("/img/4.png"));
-        Image femimg = fem.getImage().getScaledInstance(100, 100, Image.SCALE_SMOOTH);
-        ImageIcon femicon = new ImageIcon(femimg);
+            ImageIcon fem = new ImageIcon(CircularButton.class.getResource("/img/4.png"));
+            Image femimg = fem.getImage().getScaledInstance(100, 100, Image.SCALE_SMOOTH);
+            ImageIcon femicon = new ImageIcon(femimg);
 
-        ImageIcon male = new ImageIcon(CircularButton.class.getResource("/img/5.png"));
-        Image maleimg = male.getImage().getScaledInstance(100, 100, Image.SCALE_SMOOTH);
-        ImageIcon maleicon = new ImageIcon(maleimg);
+            ImageIcon male = new ImageIcon(CircularButton.class.getResource("/img/5.png"));
+            Image maleimg = male.getImage().getScaledInstance(100, 100, Image.SCALE_SMOOTH);
+            ImageIcon maleicon = new ImageIcon(maleimg);
 
-        ImageIcon sr = new ImageIcon(CircularButton.class.getResource("/img/6.png"));
-        Image srimg = sr.getImage().getScaledInstance(100, 100, Image.SCALE_SMOOTH);
-        ImageIcon sricon = new ImageIcon(srimg);
+            ImageIcon sr = new ImageIcon(CircularButton.class.getResource("/img/6.png"));
+            Image srimg = sr.getImage().getScaledInstance(100, 100, Image.SCALE_SMOOTH);
+            ImageIcon sricon = new ImageIcon(srimg);
 
-        ImageIcon pwd = new ImageIcon(CircularButton.class.getResource("/img/7.png"));
-        Image pwdimg = pwd.getImage().getScaledInstance(100, 100, Image.SCALE_SMOOTH);
-        ImageIcon pwdicon = new ImageIcon(pwdimg);
+            ImageIcon pwd = new ImageIcon(CircularButton.class.getResource("/img/7.png"));
+            Image pwdimg = pwd.getImage().getScaledInstance(100, 100, Image.SCALE_SMOOTH);
+            ImageIcon pwdicon = new ImageIcon(pwdimg);
 
-        ImageIcon rc = new ImageIcon(CircularButton.class.getResource("/img/8.png"));
-        Image rcimg = rc.getImage().getScaledInstance(100, 100, Image.SCALE_SMOOTH);
-        ImageIcon rcicon = new ImageIcon(rcimg);
+            ImageIcon rc = new ImageIcon(CircularButton.class.getResource("/img/8.png"));
+            Image rcimg = rc.getImage().getScaledInstance(100, 100, Image.SCALE_SMOOTH);
+            ImageIcon rcicon = new ImageIcon(rcimg);
 
-        CircularButton btnNewButton = new CircularButton((ImageIcon) null, 80);
-        btnNewButton.setBounds(93, 45, 90, 90);
-        btnNewButton.setIcon(hhicon);
-        statsPanel.add(btnNewButton);
+            CircularButton btnNewButton = new CircularButton((ImageIcon) null, 80);
+            btnNewButton.setBounds(93, 45, 90, 90);
+            btnNewButton.setIcon(hhicon);
+            statsPanel.add(btnNewButton);
 
-        CircularButton btnNewButton_1 = new CircularButton((ImageIcon) null, 80);
-        btnNewButton_1.setBounds(212, 45, 80, 80);
-        btnNewButton_1.setIcon(ppicon);
-        statsPanel.add(btnNewButton_1);
+            CircularButton btnNewButton_1 = new CircularButton((ImageIcon) null, 80);
+            btnNewButton_1.setBounds(212, 45, 80, 80);
+            btnNewButton_1.setIcon(ppicon);
+            statsPanel.add(btnNewButton_1);
 
-        CircularButton btnNewButton_2 = new CircularButton((ImageIcon) null, 80);
-        btnNewButton_2.setBounds(330, 45, 80, 80);
-        btnNewButton_2.setIcon(rvicon);
-        statsPanel.add(btnNewButton_2);
+            CircularButton btnNewButton_2 = new CircularButton((ImageIcon) null, 80);
+            btnNewButton_2.setBounds(330, 45, 80, 80);
+            btnNewButton_2.setIcon(rvicon);
+            statsPanel.add(btnNewButton_2);
 
-        CircularButton btnNewButton_3 = new CircularButton((ImageIcon) null, 80);
-        btnNewButton_3.setBounds(448, 45, 80, 80);
-        btnNewButton_3.setIcon(femicon);
-        statsPanel.add(btnNewButton_3);
+            CircularButton btnNewButton_3 = new CircularButton((ImageIcon) null, 80);
+            btnNewButton_3.setBounds(448, 45, 80, 80);
+            btnNewButton_3.setIcon(femicon);
+            statsPanel.add(btnNewButton_3);
 
-        CircularButton btnNewButton_4 = new CircularButton((ImageIcon) null, 80);
-        btnNewButton_4.setBounds(564, 45, 80, 80);
-        btnNewButton_4.setIcon(maleicon);
-        statsPanel.add(btnNewButton_4);
+            CircularButton btnNewButton_4 = new CircularButton((ImageIcon) null, 80);
+            btnNewButton_4.setBounds(564, 45, 80, 80);
+            btnNewButton_4.setIcon(maleicon);
+            statsPanel.add(btnNewButton_4);
 
-        CircularButton btnNewButton_5 = new CircularButton((ImageIcon) null, 80);
-        btnNewButton_5.setBounds(673, 45, 80, 80);
-        btnNewButton_5.setIcon(sricon);
-        statsPanel.add(btnNewButton_5);
+            CircularButton btnNewButton_5 = new CircularButton((ImageIcon) null, 80);
+            btnNewButton_5.setBounds(673, 45, 80, 80);
+            btnNewButton_5.setIcon(sricon);
+            statsPanel.add(btnNewButton_5);
 
-        CircularButton btnNewButton_6 = new CircularButton((ImageIcon) null, 80);
-        btnNewButton_6.setBounds(784, 45, 80, 80);
-        btnNewButton_6.setIcon(pwdicon);
-        statsPanel.add(btnNewButton_6);
+            CircularButton btnNewButton_6 = new CircularButton((ImageIcon) null, 80);
+            btnNewButton_6.setBounds(784, 45, 80, 80);
+            btnNewButton_6.setIcon(pwdicon);
+            statsPanel.add(btnNewButton_6);
 
-        CircularButton btnNewButton_7 = new CircularButton((ImageIcon) null, 80);
-        btnNewButton_7.setBounds(894, 45, 80, 80);
-        btnNewButton_7.setIcon(rcicon);
-        statsPanel.add(btnNewButton_7);
+            CircularButton btnNewButton_7 = new CircularButton((ImageIcon) null, 80);
+            btnNewButton_7.setBounds(894, 45, 80, 80);
+            btnNewButton_7.setIcon(rcicon);
+            statsPanel.add(btnNewButton_7);
+        } catch (Exception e) {
+            System.err.println("Error loading icons: " + e.getMessage());
+        }
 
         JLabel lblNewLabel = new JLabel("HOUSEHOLD");
         lblNewLabel.setFont(new Font("Tahoma", Font.BOLD, 10));
@@ -262,7 +270,6 @@ public class HomePanel extends JPanel {
     }
 
     private void loadStatistics() {
-        // Use SwingWorker to run database queries in background
         SwingWorker<Void, Void> worker = new SwingWorker<Void, Void>() {
             private int totalPopulation = 0;
             private int maleCount = 0;
@@ -270,28 +277,49 @@ public class HomePanel extends JPanel {
             private int seniorCount = 0;
             private int voterCount = 0;
             private int householdCount = 0;
-            private int blotterCount = 0;
+            private int pendingReportCount = 0;
             private int pwdCount = 0;
+            private int blotterCount = 0;
 
             @Override
             protected Void doInBackground() throws Exception {
-                // Call DatabaseManager statistics methods
-                totalPopulation = DatabaseManager.getTotalPopulation();
-                maleCount = DatabaseManager.getMaleCount();
-                femaleCount = DatabaseManager.getFemaleCount();
-                seniorCount = DatabaseManager.getSeniorCount();
-                voterCount = DatabaseManager.getVoterCount();
-                householdCount = DatabaseManager.getHouseholdCount();
-                blotterCount = DatabaseManager.getBlotterCount();
-                // PWD count - will be implemented when you add is_pwd column
-                pwdCount = 0;
-
+                try {
+                    // Initialize reports table
+                    Reportservice.initializeReportsTable();
+                    
+                    // Get statistics from StatisticsService
+                    StatisticsService.Stats stats = StatisticsService.getAllStats();
+                    totalPopulation = stats.totalPopulation;
+                    maleCount = stats.maleCount;
+                    femaleCount = stats.femaleCount;
+                    seniorCount = stats.seniorCount;
+                    voterCount = stats.voterCount;
+                    householdCount = stats.householdCount;
+                    blotterCount = stats.blotterCount;
+                    pwdCount = stats.pwdCount;
+                    
+                    // Get ONLY PENDING reports count
+                    pendingReportCount = Reportservice.getReportCountByStatus("Pending");
+                    
+                    System.out.println("=== Statistics Loaded ===");
+                    System.out.println("Total Population: " + totalPopulation);
+                    System.out.println("Male: " + maleCount);
+                    System.out.println("Female: " + femaleCount);
+                    System.out.println("Senior: " + seniorCount);
+                    System.out.println("Voters: " + voterCount);
+                    System.out.println("Households: " + householdCount);
+                    System.out.println("Blotters: " + blotterCount);
+                    System.out.println("PENDING Reports: " + pendingReportCount);
+                    System.out.println("PWD Count: " + pwdCount);
+                } catch (Exception e) {
+                    System.err.println("Error loading statistics: " + e.getMessage());
+                    e.printStackTrace();
+                }
                 return null;
             }
 
             @Override
             protected void done() {
-                // Update UI with the statistics
                 lblHouseholdCount.setText(String.valueOf(householdCount));
                 lblPopulationCount.setText(String.valueOf(totalPopulation));
                 lblVotersCount.setText(String.valueOf(voterCount));
@@ -299,18 +327,28 @@ public class HomePanel extends JPanel {
                 lblMaleCount.setText(String.valueOf(maleCount));
                 lblSeniorCount.setText(String.valueOf(seniorCount));
                 lblPWDCount.setText(String.valueOf(pwdCount));
-                lblReportCasesCount.setText(String.valueOf(blotterCount));
+                lblReportCasesCount.setText(String.valueOf(pendingReportCount));
             }
         };
-
         worker.execute();
     }
     
     public void refreshStatistics() {
-    	 SwingUtilities.invokeLater(() -> loadStatistics());
+        SwingUtilities.invokeLater(() -> loadStatistics());
     }
-    
-    
-    
-    
+}
+
+// GradientPanel class
+class GradientPanel extends JPanel {
+    @Override
+    protected void paintComponent(Graphics g) {
+        super.paintComponent(g);
+        Graphics2D g2d = (Graphics2D) g;
+        g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+        int w = getWidth();
+        int h = getHeight();
+        GradientPaint gp = new GradientPaint(0, 0, new Color(34, 139, 34), 0, h, new Color(20, 100, 20));
+        g2d.setPaint(gp);
+        g2d.fillRect(0, 0, w, h);
+    }
 }

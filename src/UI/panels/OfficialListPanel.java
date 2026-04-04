@@ -83,6 +83,12 @@ public class OfficialListPanel extends JPanel {
         GreenPanel_1.setBounds(0, 0, 793, 46);
         CaptainPanel_1.add(GreenPanel_1);
         
+        JLabel lblBarangaySecretary = new JLabel("BARANGAY KAGAWAD");
+        lblBarangaySecretary.setForeground(Color.BLACK);
+        lblBarangaySecretary.setFont(new Font("Tahoma", Font.BOLD, 15));
+        lblBarangaySecretary.setBounds(64, 11, 179, 26);
+        GreenPanel_1.add(lblBarangaySecretary);
+        
         JLabel cptPic_1 = new JLabel();
         cptPic_1.setText("BARANGAY CAPTAIN NAME");
         cptPic_1.setOpaque(false);
@@ -110,6 +116,12 @@ public class OfficialListPanel extends JPanel {
         GreenPanel_1_1.setBackground(new Color(128, 255, 128));
         GreenPanel_1_1.setBounds(0, 0, 793, 46);
         CaptainPanel_1_1.add(GreenPanel_1_1);
+        
+        JLabel lblBarangayTreasurer = new JLabel("BARANGAY TREASURER");
+        lblBarangayTreasurer.setForeground(Color.BLACK);
+        lblBarangayTreasurer.setFont(new Font("Tahoma", Font.BOLD, 15));
+        lblBarangayTreasurer.setBounds(53, 11, 206, 26);
+        GreenPanel_1_1.add(lblBarangayTreasurer);
         
         OvalPanel GreenPanel_2 = new OvalPanel();
         GreenPanel_2.setLayout(null);
