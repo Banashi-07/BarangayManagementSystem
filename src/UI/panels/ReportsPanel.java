@@ -59,7 +59,7 @@ public class ReportsPanel extends JPanel {
         cardsPanel.setMaximumSize(new Dimension(500, 200));
 
         // Create cards with click handlers
-        JButton settledCard = createCard("Settled Cases", "/img/CheckIcon.png", new Color(102, 170, 51));
+        JButton settledCard = createCard("Settled Cases", "/img/checkicon.png", new Color(102, 170, 51));
         settledCountLabel = getValueLabel(settledCard);
         settledCard.addActionListener(e -> filterReportsByStatus("Settled"));
         cardsPanel.add(settledCard);
