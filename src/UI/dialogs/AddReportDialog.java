@@ -6,10 +6,8 @@ import javax.swing.*;
 import javax.swing.border.*;
 import java.awt.*;
 import java.time.LocalDate;
-import UI.dialogs.AddBlotterDialog;
-import UI.dialogs.ViewBlotterDialog;
 
-public class AddBlotterDialog extends JDialog {
+public class AddReportDialog extends JDialog {
 
     private JTextField complainantField;
     private JTextField respondentField;
@@ -19,15 +17,14 @@ public class AddBlotterDialog extends JDialog {
     private JComboBox<String> statusBox;
     private Runnable onRefresh;
 
-    public AddBlotterDialog(JFrame parent, String residentName, Runnable onRefresh) {
-        super(parent, "Add Blotter Case", true);
+    public AddReportDialog(JFrame parent, String residentName, Runnable onRefresh) {
+        super(parent, "Add Report Case", true);
         this.onRefresh = onRefresh;
         init(residentName);
     }
 
-    /** @wbp.parser.constructor */
-    public AddBlotterDialog(JDialog parent, String residentName, Runnable onRefresh) {
-        super(parent, "Add Blotter Case", true);
+    public AddReportDialog(JDialog parent, String residentName, Runnable onRefresh) {
+        super(parent, "Add Report Case", true);
         this.onRefresh = onRefresh;
         init(residentName);
     }
@@ -40,18 +37,18 @@ public class AddBlotterDialog extends JDialog {
         JPanel mainPanel = new JPanel(new BorderLayout());
         mainPanel.setBackground(Color.WHITE);
 
-        // ── Header ────────────────────────────────────────────────────────────
+        // Header
         JPanel headerPanel = new JPanel(new BorderLayout());
         headerPanel.setBackground(new Color(41, 128, 185));
         headerPanel.setBorder(new EmptyBorder(15, 25, 15, 25));
 
-        JLabel titleLabel = new JLabel("FILE NEW BLOTTER CASE");
+        JLabel titleLabel = new JLabel("FILE NEW REPORT");
         titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 18));
         titleLabel.setForeground(Color.WHITE);
         headerPanel.add(titleLabel, BorderLayout.CENTER);
         mainPanel.add(headerPanel, BorderLayout.NORTH);
 
-        // ── Form ──────────────────────────────────────────────────────────────
+        // Form
         JPanel formPanel = new JPanel(new GridBagLayout());
         formPanel.setBackground(Color.WHITE);
         formPanel.setBorder(new EmptyBorder(20, 25, 10, 25));
@@ -74,7 +71,7 @@ public class AddBlotterDialog extends JDialog {
         respondentField = createTextField("");
         addField(formPanel, respondentField, gbc, y++);
 
-        // Incident Type
+        // Incident Type (used as title)
         addLabel(formPanel, "Incident Type:", gbc, y);
         String[] types = {"Select Type", "Theft", "Physical Injury", "Verbal Abuse",
                           "Property Damage", "Harassment", "Threat", "Fraud", "Disturbance", "Other"};
@@ -111,23 +108,22 @@ public class AddBlotterDialog extends JDialog {
         statusBox.setBackground(Color.WHITE);
         addField(formPanel, statusBox, gbc, y++);
 
-        // Wrap form in a scroll pane (vertical only)
         JScrollPane formScroll = new JScrollPane(formPanel);
         formScroll.setBorder(null);
         formScroll.getVerticalScrollBar().setUnitIncrement(16);
         formScroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
         mainPanel.add(formScroll, BorderLayout.CENTER);
 
-        // ── Buttons ───────────────────────────────────────────────────────────
+        // Buttons
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 15));
         buttonPanel.setBackground(Color.WHITE);
         buttonPanel.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, new Color(220, 220, 220)));
 
-        JButton cancelBtn = createButton("CANCEL",    new Color(149, 165, 166), new Color(127, 140, 141));
-        JButton saveBtn   = createButton("FILE CASE", new Color(46, 204, 113),  new Color(39, 174, 96));
+        JButton cancelBtn = createButton("CANCEL", new Color(149, 165, 166), new Color(127, 140, 141));
+        JButton saveBtn = createButton("FILE REPORT", new Color(46, 204, 113), new Color(39, 174, 96));
 
         cancelBtn.addActionListener(e -> dispose());
-        saveBtn.addActionListener(e -> { if (validateFields()) saveBlotter(); });
+        saveBtn.addActionListener(e -> { if (validateFields()) saveReport(); });
 
         buttonPanel.add(cancelBtn);
         buttonPanel.add(saveBtn);
@@ -139,47 +135,68 @@ public class AddBlotterDialog extends JDialog {
 
     private boolean validateFields() {
         if (respondentField.getText().trim().isEmpty()) {
-            showError("Respondent name is required!"); return false;
+            showError("Respondent name is required!");
+            return false;
         }
         if (incidentTypeBox.getSelectedIndex() == 0) {
-            showError("Please select an incident type!"); return false;
+            showError("Please select an incident type!");
+            return false;
         }
         if (dateField.getText().trim().isEmpty()) {
-            showError("Date of incident is required!"); return false;
+            showError("Date of incident is required!");
+            return false;
         }
         if (!dateField.getText().trim().matches("\\d{4}-\\d{2}-\\d{2}")) {
-            showError("Date must be in YYYY-MM-DD format!"); return false;
+            showError("Date must be in YYYY-MM-DD format!");
+            return false;
         }
         if (descriptionArea.getText().trim().isEmpty()) {
-            showError("Please provide a description of the incident!"); return false;
+            showError("Please provide a description of the incident!");
+            return false;
         }
         return true;
     }
 
-    private void saveBlotter() {
+    private void saveReport() {
         try {
-            DatabaseManager.addBlotter(
-                complainantField.getText().trim(),
-                respondentField.getText().trim(),
-                incidentTypeBox.getSelectedItem().toString(),
-                descriptionArea.getText().trim(),
-                dateField.getText().trim(),
-                statusBox.getSelectedItem().toString()
-            );
-            JOptionPane.showMessageDialog(this, "Blotter case filed successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
+            // Get complainant ID (you may need to fetch this from the database)
+            int complainantId = getResidentIdByName(complainantField.getText().trim());
+            int respondentId = getResidentIdByName(respondentField.getText().trim());
+            
+            String title = incidentTypeBox.getSelectedItem().toString();
+            String description = descriptionArea.getText().trim();
+            String incidentDate = dateField.getText().trim();
+            String status = statusBox.getSelectedItem().toString();
+            
+            DatabaseManager.addReport(title, description, incidentDate, status, complainantId, respondentId);
+            
+            JOptionPane.showMessageDialog(this, "Report filed successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
             if (onRefresh != null) onRefresh.run();
             dispose();
         } catch (Exception ex) {
-            showError("Error filing blotter: " + ex.getMessage());
+            showError("Error filing report: " + ex.getMessage());
             ex.printStackTrace();
         }
     }
-
-    // ── Helpers ───────────────────────────────────────────────────────────────
+    
+    private int getResidentIdByName(String name) {
+        try {
+            for (DatabaseManager.Resident r : DatabaseManager.getAllResidents()) {
+                if (r.getName().equalsIgnoreCase(name)) {
+                    return r.getId();
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Error finding resident: " + e.getMessage());
+        }
+        return -1;
+    }
 
     private void addLabel(JPanel panel, String text, GridBagConstraints gbc, int y) {
         GridBagConstraints c = (GridBagConstraints) gbc.clone();
-        c.gridx = 0; c.gridy = y; c.weightx = 0.3;
+        c.gridx = 0;
+        c.gridy = y;
+        c.weightx = 0.3;
         JLabel label = new JLabel(text);
         label.setFont(new Font("Segoe UI", Font.BOLD, 13));
         label.setForeground(new Color(52, 73, 94));
@@ -188,7 +205,9 @@ public class AddBlotterDialog extends JDialog {
 
     private void addField(JPanel panel, JComponent comp, GridBagConstraints gbc, int y) {
         GridBagConstraints c = (GridBagConstraints) gbc.clone();
-        c.gridx = 1; c.gridy = y; c.weightx = 0.7;
+        c.gridx = 1;
+        c.gridy = y;
+        c.weightx = 0.7;
         panel.add(comp, c);
     }
 
@@ -212,8 +231,12 @@ public class AddBlotterDialog extends JDialog {
         button.setCursor(new Cursor(Cursor.HAND_CURSOR));
         button.setPreferredSize(new Dimension(130, 40));
         button.addMouseListener(new java.awt.event.MouseAdapter() {
-            public void mouseEntered(java.awt.event.MouseEvent evt) { button.setBackground(hoverColor); }
-            public void mouseExited(java.awt.event.MouseEvent evt)  { button.setBackground(bgColor); }
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                button.setBackground(hoverColor);
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                button.setBackground(bgColor);
+            }
         });
         return button;
     }

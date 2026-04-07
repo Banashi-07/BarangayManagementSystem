@@ -9,12 +9,13 @@ import java.awt.image.BufferedImage;
 import java.sql.SQLException;
 import java.util.List;
 
-import database.Report;
+import database.DatabaseManager;
+import database.DatabaseManager.Report;  // ← FIXED: Use Report from DatabaseManager
 import database.ResidentDAO;
-import service.Reportservice;
 import UI.dialogs.Reportdialog;
 import UI.dialogs.SettleReportDialog;
 import UI.dialogs.ViewReportDialog;
+
 
 public class ReportsPanel extends JPanel {
     private DefaultTableModel tableModel;
@@ -26,17 +27,6 @@ public class ReportsPanel extends JPanel {
     private String currentFilter = "All"; // Track current filter
 
     public ReportsPanel() {
-        // Initialize reports table in database
-        try {
-            Reportservice.initializeReportsTable();
-        } catch (SQLException e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(this, 
-                "Error initializing reports table: " + e.getMessage(),
-                "Database Error", 
-                JOptionPane.ERROR_MESSAGE);
-        }
-
         setLayout(new BorderLayout());
         setBackground(Color.WHITE);
 
@@ -244,9 +234,9 @@ public class ReportsPanel extends JPanel {
         try {
             List<Report> reports;
             if (currentFilter.equals("All")) {
-                reports = Reportservice.getAllReports();
+                reports = DatabaseManager.getAllReports();
             } else {
-                reports = Reportservice.getReportsByStatus(currentFilter);
+                reports = DatabaseManager.getReportsByStatus(currentFilter);
             }
             
             // Clear existing rows
@@ -275,10 +265,10 @@ public class ReportsPanel extends JPanel {
     // ================= UPDATE CARD COUNTS =================
     private void updateCardCounts() {
         try {
-            int settledCount = Reportservice.getReportCountByStatus("Settled");
-            int unsettledCount = Reportservice.getReportCountByStatus("Unsettled");
-            int scheduledCount = Reportservice.getReportCountByStatus("Scheduled");
-            int pendingCount = Reportservice.getReportCountByStatus("Pending");
+            int settledCount = DatabaseManager.getReportCountByStatus("Settled");
+            int unsettledCount = DatabaseManager.getReportCountByStatus("Unsettled");
+            int scheduledCount = DatabaseManager.getReportCountByStatus("Scheduled");
+            int pendingCount = DatabaseManager.getReportCountByStatus("Pending");
             
             settledCountLabel.setText(String.valueOf(settledCount));
             unsettledCountLabel.setText(String.valueOf(unsettledCount));
@@ -319,7 +309,7 @@ public class ReportsPanel extends JPanel {
         
         try {
             int reportId = (int) tableModel.getValueAt(selectedRow, 0);
-            Report report = Reportservice.getReportById(reportId);
+            Report report = DatabaseManager.getReportById(reportId);
             
             if (report != null) {
                 Reportdialog dialog = new Reportdialog((Frame) SwingUtilities.getWindowAncestor(this), report);
@@ -352,7 +342,7 @@ public class ReportsPanel extends JPanel {
         
         try {
             int reportId = (int) tableModel.getValueAt(selectedRow, 0);
-            Report report = Reportservice.getReportById(reportId);
+            Report report = DatabaseManager.getReportById(reportId);
             
             if (report != null) {
                 ViewReportDialog dialog = new ViewReportDialog((Frame) SwingUtilities.getWindowAncestor(this), report);
@@ -380,7 +370,7 @@ public class ReportsPanel extends JPanel {
         
         try {
             int reportId = (int) tableModel.getValueAt(selectedRow, 0);
-            Report report = Reportservice.getReportById(reportId);
+            Report report = DatabaseManager.getReportById(reportId);
             
             if (report != null) {
                 if ("Settled".equals(report.getStatus())) {

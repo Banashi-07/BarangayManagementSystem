@@ -1,10 +1,8 @@
 package UI.dialogs;
 
 import database.DatabaseManager;
-import database.DatabaseManager.Blotter;
+import database.DatabaseManager.Report;
 import database.ResidentDAO.ResidentRow;
-import database.Report;
-import service.Reportservice;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -14,12 +12,12 @@ import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
 
 import java.awt.*;
-import java.sql.*;
+import java.sql.SQLException;
 import java.util.*;
 import java.util.List;
 
 /**
- * ViewResidentDialog — Fixed blotter/report lookup
+ * ViewResidentDialog — Shows resident details and their report history
  */
 public class ViewResidentDialog extends JDialog {
 
@@ -172,8 +170,6 @@ public class ViewResidentDialog extends JDialog {
         addField(personal, "PWD Status",    getPwdStatus(r));
         personal.add(Box.createVerticalGlue());
 
-     
-
         row.add(personal);
         row.add(address);
         return row;
@@ -291,7 +287,7 @@ public class ViewResidentDialog extends JDialog {
     }
 
     // ══════════════════════════════════════════════════════════════════════════
-    //  LOAD REPORT DATA - USING REPORTSERVICE
+    //  LOAD REPORT DATA - USING DATABASEMANAGER DIRECTLY
     // ══════════════════════════════════════════════════════════════════════════
     private void loadReportData() {
         reportById.clear();
@@ -302,9 +298,9 @@ public class ViewResidentDialog extends JDialog {
             System.out.println("Resident Name: '" + residentName + "'");
             
             // Get reports where resident is complainant
-            List<Report> asComplainant = Reportservice.getReportsByComplainantId(residentId);
+            List<Report> asComplainant = DatabaseManager.getReportsByComplainant(residentId);
             // Get reports where resident is complainee
-            List<Report> asComplainee = Reportservice.getReportsByComplaineeId(residentId);
+            List<Report> asComplainee = DatabaseManager.getReportsByComplainee(residentId);
             
             System.out.println("Reports as Complainant: " + (asComplainant != null ? asComplainant.size() : 0));
             System.out.println("Reports as Complainee: " + (asComplainee != null ? asComplainee.size() : 0));
@@ -407,7 +403,7 @@ public class ViewResidentDialog extends JDialog {
             
             System.out.println("========== SEARCH COMPLETE ==========\n");
             
-        } catch (Exception ex) {
+        } catch (SQLException ex) {
             ex.printStackTrace();
             debugLabel.setText("⚠ Error: " + ex.getMessage());
             JOptionPane.showMessageDialog(this,
@@ -434,8 +430,8 @@ public class ViewResidentDialog extends JDialog {
         Report report = reportById.get(reportId);
         if (report == null) {
             try { 
-                report = Reportservice.getReportById(reportId);
-            } catch (Exception ex) {
+                report = DatabaseManager.getReportById(reportId);
+            } catch (SQLException ex) {
                 JOptionPane.showMessageDialog(this, "Error: "+ex.getMessage(),
                     "Error", JOptionPane.ERROR_MESSAGE);
                 return;
@@ -521,7 +517,7 @@ public class ViewResidentDialog extends JDialog {
                 DatabaseManager.Resident complainee = DatabaseManager.getResidentById(report.getComplaineeId());
                 if (complainee != null) complaineeName = complainee.getName();
             }
-        } catch (Exception e) {
+        } catch (SQLException e) {
             // Use IDs if names can't be fetched
         }
 

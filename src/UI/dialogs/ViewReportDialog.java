@@ -1,6 +1,6 @@
 package UI.dialogs;
 
-import database.Report;
+import database.DatabaseManager.Report;
 import database.ResidentDAO;
 
 import javax.swing.*;

@@ -29,70 +29,43 @@ public class CertificateService {
     private static final String RESIDENCY_TEMPLATE = "ResidencyPdf.pdf";
     private static final String INDIGENCY_TEMPLATE = "IndigencyPdf.pdf";
 
-    // For scheduling automatic deletion
     private static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
-    // =====================================================
-    // FONT STYLE SETTINGS - CHANGE THESE VALUES
-    // =====================================================
-    
+    // Font settings
     private static final Standard14Fonts.FontName NAME_FONT = Standard14Fonts.FontName.HELVETICA_BOLD;
     private static final float NAME_FONT_SIZE = 12;
-    
     private static final Standard14Fonts.FontName AGE_FONT = Standard14Fonts.FontName.HELVETICA_BOLD;
     private static final float AGE_FONT_SIZE = 11;
-    
     private static final Standard14Fonts.FontName PURPOSE_FONT = Standard14Fonts.FontName.HELVETICA_BOLD;
     private static final float PURPOSE_FONT_SIZE = 10;
-    
     private static final Standard14Fonts.FontName DATE_FONT = Standard14Fonts.FontName.HELVETICA;
     private static final float DATE_FONT_SIZE = 10;
-    
     private static final Standard14Fonts.FontName OR_FONT = Standard14Fonts.FontName.COURIER;
     private static final float OR_FONT_SIZE = 9;
 
     static {
         try {
-            // Ensure database connection is ready
-            if (!DatabaseManager.isConnected()) {
-                DatabaseManager.connect();
-            }
-            // Only create templates directory, no output directory needed anymore
             new File(TEMPLATES_DIR).mkdirs();
-        } catch (SQLException e) {
-            System.err.println("Failed to connect to database in CertificateService: " + e.getMessage());
-            e.printStackTrace();
         } catch (Exception e) {
             System.err.println("Failed to create templates directory: " + e.getMessage());
         }
         
-        // Clean up any leftover temp files from previous runs
         cleanupOldTempFiles();
         
-        // Shutdown hook to clean up scheduler
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             scheduler.shutdown();
             cleanupOldTempFiles();
         }));
     }
 
-    // Helper method to ensure connection
-    private static void ensureConnection() throws SQLException {
-        if (!DatabaseManager.isConnected()) {
-            DatabaseManager.connect();
-        }
-    }
-
     public static void generateClearance(int residentId, String purpose) {
         File tempFile = null;
         try {
-            ensureConnection();
             Resident resident = DatabaseManager.getResidentById(residentId);
             if (resident == null) {
                 throw new IllegalArgumentException("Resident not found with ID: " + residentId);
             }
 
-            // Create temporary file (deleted when JVM exits or manually)
             tempFile = File.createTempFile("clearance_" + sanitizeFilename(resident.getName()) + "_", ".pdf");
             
             File templateFile = new File(TEMPLATES_DIR + CLEARANCE_TEMPLATE);
@@ -120,7 +93,6 @@ public class CertificateService {
                     
                     // NAME field
                     content.setFont(new PDType1Font(NAME_FONT), NAME_FONT_SIZE);
-                    content.setNonStrokingColor(0, 0, 0);
                     content.beginText();
                     content.newLineAtOffset(275, 487);
                     content.showText(resident.getName());
@@ -128,7 +100,6 @@ public class CertificateService {
                     
                     // AGE field
                     content.setFont(new PDType1Font(AGE_FONT), AGE_FONT_SIZE);
-                    content.setNonStrokingColor(0, 0, 0);
                     content.beginText();
                     content.newLineAtOffset(455, 487);
                     content.showText(String.valueOf(age));
@@ -136,7 +107,6 @@ public class CertificateService {
                     
                     // PURPOSE field
                     content.setFont(new PDType1Font(PURPOSE_FONT), PURPOSE_FONT_SIZE);
-                    content.setNonStrokingColor(0, 0, 0);
                     content.beginText();
                     content.newLineAtOffset(130, 360);
                     content.showText(purpose);
@@ -144,7 +114,6 @@ public class CertificateService {
                     
                     // OFFICIAL RECEIPT NUMBER field
                     content.setFont(new PDType1Font(OR_FONT), OR_FONT_SIZE);
-                    content.setNonStrokingColor(0, 0, 0);
                     content.beginText();
                     content.newLineAtOffset(185, 160);
                     content.showText(String.valueOf(residentId));
@@ -152,29 +121,25 @@ public class CertificateService {
                     
                     // BOTTOM DATE field
                     content.setFont(new PDType1Font(DATE_FONT), DATE_FONT_SIZE);
-                    content.setNonStrokingColor(0, 0, 0);
                     content.beginText();
                     content.newLineAtOffset(95, 146);
-                    content.showText(dateFormat.format(new Date()));
+                    content.showText(currentDate);
                     content.endText();
                 }
                 
                 doc.save(tempFile);
             }
             
-            // Open the temporary file and schedule deletion
             openAndDeleteLater(tempFile);
             
         } catch (SQLException e) {
             System.err.println("Database error generating clearance: " + e.getMessage());
-            e.printStackTrace();
             if (tempFile != null && tempFile.exists()) {
                 tempFile.delete();
             }
             throw new RuntimeException("Failed to generate clearance certificate: " + e.getMessage());
         } catch (IOException e) {
             System.err.println("IO error generating clearance: " + e.getMessage());
-            e.printStackTrace();
             if (tempFile != null && tempFile.exists()) {
                 tempFile.delete();
             }
@@ -185,13 +150,11 @@ public class CertificateService {
     public static void generateResidency(int residentId, String purpose) {
         File tempFile = null;
         try {
-            ensureConnection();
             Resident resident = DatabaseManager.getResidentById(residentId);
             if (resident == null) {
                 throw new IllegalArgumentException("Resident not found with ID: " + residentId);
             }
 
-            // Create temporary file
             tempFile = File.createTempFile("residency_" + sanitizeFilename(resident.getName()) + "_", ".pdf");
             
             File templateFile = new File(TEMPLATES_DIR + RESIDENCY_TEMPLATE);
@@ -209,7 +172,6 @@ public class CertificateService {
                     SimpleDateFormat dateFormat = new SimpleDateFormat("MMMM dd, yyyy");
                     String currentDate = dateFormat.format(new Date());
                     
-                    // DATE field (top right)
                     content.setFont(new PDType1Font(DATE_FONT), DATE_FONT_SIZE);
                     content.setNonStrokingColor(0, 0, 0);
                     content.beginText();
@@ -217,55 +179,44 @@ public class CertificateService {
                     content.showText(currentDate);
                     content.endText();
                     
-                    // NAME field
                     content.setFont(new PDType1Font(NAME_FONT), NAME_FONT_SIZE);
-                    content.setNonStrokingColor(0, 0, 0);
                     content.beginText();
                     content.newLineAtOffset(265, 487);
                     content.showText(resident.getName());
                     content.endText();
                     
-                    // AGE field
                     content.setFont(new PDType1Font(AGE_FONT), AGE_FONT_SIZE);
-                    content.setNonStrokingColor(0, 0, 0);
                     content.beginText();
                     content.newLineAtOffset(450, 487);
                     content.showText(String.valueOf(age));
                     content.endText();
                     
-                    // PURPOSE field
                     content.setFont(new PDType1Font(PURPOSE_FONT), PURPOSE_FONT_SIZE);
-                    content.setNonStrokingColor(0, 0, 0);
                     content.beginText();
                     content.newLineAtOffset(395, 375);
                     content.showText(purpose);
                     content.endText();
                     
-                    // OFFICIAL RECEIPT NUMBER field
                     content.setFont(new PDType1Font(OR_FONT), OR_FONT_SIZE);
-                    content.setNonStrokingColor(0, 0, 0);
                     content.beginText();
                     content.newLineAtOffset(185, 130);
                     content.showText(String.valueOf(residentId));
                     content.endText();
                     
-                    // BOTTOM DATE field
                     content.setFont(new PDType1Font(DATE_FONT), DATE_FONT_SIZE);
-                    content.setNonStrokingColor(0, 0, 0);
                     content.beginText();
                     content.newLineAtOffset(95, 117);
-                    content.showText(dateFormat.format(new Date()));
+                    content.showText(currentDate);
                     content.endText();
                 }
                 
                 doc.save(tempFile);
             }
             
-            // Open and schedule deletion
             openAndDeleteLater(tempFile);
             
         } catch (SQLException | IOException e) {
-            e.printStackTrace();
+            System.err.println("Error generating residency: " + e.getMessage());
             if (tempFile != null && tempFile.exists()) {
                 tempFile.delete();
             }
@@ -276,13 +227,11 @@ public class CertificateService {
     public static void generateIndigency(int residentId, String purpose) {
         File tempFile = null;
         try {
-            ensureConnection();
             Resident resident = DatabaseManager.getResidentById(residentId);
             if (resident == null) {
                 throw new IllegalArgumentException("Resident not found with ID: " + residentId);
             }
 
-            // Create temporary file
             tempFile = File.createTempFile("indigency_" + sanitizeFilename(resident.getName()) + "_", ".pdf");
             
             File templateFile = new File(TEMPLATES_DIR + INDIGENCY_TEMPLATE);
@@ -300,7 +249,6 @@ public class CertificateService {
                     SimpleDateFormat dateFormat = new SimpleDateFormat("MMMM dd, yyyy");
                     String currentDate = dateFormat.format(new Date());
                     
-                    // DATE field (top right)
                     content.setFont(new PDType1Font(DATE_FONT), DATE_FONT_SIZE);
                     content.setNonStrokingColor(0, 0, 0);
                     content.beginText();
@@ -308,25 +256,19 @@ public class CertificateService {
                     content.showText(currentDate);
                     content.endText();
                     
-                    // NAME field
                     content.setFont(new PDType1Font(NAME_FONT), NAME_FONT_SIZE);
-                    content.setNonStrokingColor(0, 0, 0);
                     content.beginText();
                     content.newLineAtOffset(275, 465);
                     content.showText(resident.getName());
                     content.endText();
                     
-                    // AGE field
                     content.setFont(new PDType1Font(AGE_FONT), AGE_FONT_SIZE);
-                    content.setNonStrokingColor(0, 0, 0);
                     content.beginText();
                     content.newLineAtOffset(470, 465);
                     content.showText(String.valueOf(age));
                     content.endText();
                     
-                    // PURPOSE field
                     content.setFont(new PDType1Font(PURPOSE_FONT), PURPOSE_FONT_SIZE);
-                    content.setNonStrokingColor(0, 0, 0);
                     content.beginText();
                     content.newLineAtOffset(150, 363);
                     content.showText(purpose);
@@ -336,11 +278,10 @@ public class CertificateService {
                 doc.save(tempFile);
             }
             
-            // Open and schedule deletion
             openAndDeleteLater(tempFile);
             
         } catch (SQLException | IOException e) {
-            e.printStackTrace();
+            System.err.println("Error generating indigency: " + e.getMessage());
             if (tempFile != null && tempFile.exists()) {
                 tempFile.delete();
             }
@@ -348,22 +289,15 @@ public class CertificateService {
         }
     }
 
-    /**
-     * Opens a PDF file and schedules it for deletion after 30 seconds
-     */
     private static void openAndDeleteLater(File pdfFile) {
         try {
-            // Open the PDF
             if (Desktop.isDesktopSupported()) {
                 Desktop desktop = Desktop.getDesktop();
                 if (desktop.isSupported(Desktop.Action.OPEN)) {
                     desktop.open(pdfFile);
                     System.out.println("Temporary PDF opened: " + pdfFile.getName());
-                } else {
-                    System.out.println("PDF saved to temp location: " + pdfFile.getAbsolutePath());
                 }
             } else {
-                // Fallback for systems without Desktop support
                 String os = System.getProperty("os.name").toLowerCase();
                 ProcessBuilder pb = null;
                 if (os.contains("win")) {
@@ -379,28 +313,20 @@ public class CertificateService {
                 }
             }
             
-            // Schedule deletion after 30 seconds (gives time to view)
             scheduler.schedule(() -> {
-                boolean deleted = pdfFile.delete();
-                if (deleted) {
+                if (pdfFile.delete()) {
                     System.out.println("Temporary PDF deleted: " + pdfFile.getName());
                 } else {
-                    // If can't delete now, delete on JVM exit
                     pdfFile.deleteOnExit();
-                    System.out.println("Scheduled PDF deletion on exit: " + pdfFile.getName());
                 }
             }, 30, TimeUnit.SECONDS);
             
         } catch (IOException e) {
             System.err.println("Failed to open PDF: " + e.getMessage());
-            // Delete immediately if can't open
             pdfFile.delete();
         }
     }
     
-    /**
-     * Cleans up any leftover temporary files from previous runs
-     */
     private static void cleanupOldTempFiles() {
         try {
             String tempDir = System.getProperty("java.io.tmpdir");
@@ -412,10 +338,8 @@ public class CertificateService {
             
             if (tempFiles != null) {
                 for (File file : tempFiles) {
-                    // Delete files older than 1 hour
                     if (System.currentTimeMillis() - file.lastModified() > 3600000) {
                         file.delete();
-                        System.out.println("Cleaned up old temp file: " + file.getName());
                     }
                 }
             }
@@ -438,10 +362,8 @@ public class CertificateService {
             }
             
             LocalDate birthDate = LocalDate.parse(birthdate, formatter);
-            LocalDate currentDate = LocalDate.now();
-            return Period.between(birthDate, currentDate).getYears();
+            return Period.between(birthDate, LocalDate.now()).getYears();
         } catch (Exception e) {
-            System.err.println("Failed to parse birthdate: " + birthdate);
             return 0;
         }
     }

@@ -1,8 +1,8 @@
 package UI.dialogs;
 
-import database.Report;
+import database.DatabaseManager;
+import database.DatabaseManager.Report;
 import database.ResidentDAO;
-import service.Reportservice;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -436,8 +436,9 @@ public class Reportdialog extends JDialog {
         
         try {
             if (report == null) {
-                int reportId = Reportservice.addReport(title, description, incidentDate, status, 
-                                                       complainant.id, complainee.id);
+                // Direct call to DatabaseManager instead of Reportservice
+                int reportId = DatabaseManager.addReport(title, description, incidentDate, status, 
+                                                         complainant.id, complainee.id);
                 if (reportId > 0) {
                     JOptionPane.showMessageDialog(this,
                         "Report added successfully!\n" +
@@ -454,8 +455,9 @@ public class Reportdialog extends JDialog {
                         JOptionPane.ERROR_MESSAGE);
                 }
             } else {
-                Reportservice.updateReport(report.getId(), title, description, incidentDate, 
-                                          status, complainant.id, complainee.id);
+                // Direct call to DatabaseManager instead of Reportservice
+                DatabaseManager.updateReport(report.getId(), title, description, incidentDate, 
+                                            status, complainant.id, complainee.id);
                 JOptionPane.showMessageDialog(this,
                     "Report updated successfully!",
                     "Success",

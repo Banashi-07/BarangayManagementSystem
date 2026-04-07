@@ -4,7 +4,6 @@ import UI.panels.ContentPanel;
 import UI.panels.HomePanel;
 import UI.panels.MainPanel;
 import database.DatabaseManager;
-import database.DatabaseSeeder;
 
 import javax.swing.*;
 import java.awt.*;
@@ -17,9 +16,9 @@ public class MainFrame extends JFrame {
 	private HomePanel homePanel = new HomePanel();
 	
     public MainFrame() {
-        // 1. Connect to database with error handling
+        // 1. Initialize database connection using getConnection()
         try {
-            DatabaseManager.connect();
+            DatabaseManager.getConnection();
             System.out.println("Database connected successfully");
         } catch (SQLException e) {
             System.err.println("Failed to connect to database: " + e.getMessage());
@@ -38,7 +37,7 @@ public class MainFrame extends JFrame {
             if (response == JOptionPane.YES_OPTION) {
                 // Retry connection
                 try {
-                    DatabaseManager.connect();
+                    DatabaseManager.getConnection();
                 } catch (SQLException ex) {
                     System.err.println("Retry failed: " + ex.getMessage());
                     JOptionPane.showMessageDialog(
@@ -54,15 +53,11 @@ public class MainFrame extends JFrame {
             }
         }
 
- //       DatabaseSeeder.seed();
-		System.out.println("Database seeding completed");
-
         setTitle("Barangay Management System");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setResizable(true);
         setExtendedState(JFrame.MAXIMIZED_BOTH);
         setLocationRelativeTo(null);
-        setLayout(new BorderLayout());
 
         // Create main panel
         ContentPanel content = new ContentPanel(homePanel);
@@ -74,7 +69,6 @@ public class MainFrame extends JFrame {
 
         // Wrap in scroll pane
         JScrollPane scrollPane = new JScrollPane(content);
-
         scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
 
         scrollPane.getVerticalScrollBar().setUI(new javax.swing.plaf.basic.BasicScrollBarUI() {
@@ -114,14 +108,12 @@ public class MainFrame extends JFrame {
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
             try {
-                // Set system look and feel for better appearance
                 UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
             } catch (Exception e) {
                 System.err.println("Could not set system look and feel: " + e.getMessage());
             }
             
-            MainFrame frame = new MainFrame();
-            frame.setVisible(true);
+            new MainFrame();
         });
     }
 }

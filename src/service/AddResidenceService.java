@@ -2,132 +2,136 @@ package service;
 
 import database.DatabaseManager;
 import java.sql.SQLException;
+import javax.swing.JOptionPane;
 
 public class AddResidenceService {
     
-    /**
-     * Service class to handle adding residence operations
-     */
-    public AddResidenceService() {
-        // Ensure database connection is established
-        try {
-            if (!DatabaseManager.isConnected()) {
-                DatabaseManager.connect();
-            }
-        } catch (SQLException e) {
-            System.err.println("Failed to connect to database: " + e.getMessage());
-            e.printStackTrace();
-            throw new RuntimeException("Cannot initialize database connection", e);
-        }
-    }
-    
-    /**
-     * Add a new residence to the database
-     * @param name Resident's full name
-     * @param age Resident's age (will be converted to birthdate)
-     * @param sex Resident's sex
-     * @param address Complete address
-     * @param purok Purok/Zone
-     * @param status Civil status
-     * @param houseNo House number
-     * @return true if successful, false otherwise
-     */
     public boolean addResidence(String name, String age, String sex, 
-		            String address, String purok, String status, 
-		            String houseNo) {
+                                String address, String purok, String status, 
+                                String houseNo) {
         try {
-            // Validate inputs
             if (name == null || name.trim().isEmpty()) {
                 throw new IllegalArgumentException("Name is required");
             }
             
-            // Combine address components
             String fullAddress = buildFullAddress(address, purok, houseNo);
-            
-            // Convert age to birthdate (approximate - you might want to add a date picker instead)
             String birthdate = calculateBirthdateFromAge(age);
+            String contact = "";
+            String pwd = "No";
             
-            // Contact field - you might want to add this to your dialog
-            String contact = ""; // Default empty, you can add a contact field to dialog
-            
-            // Make sure we have a valid connection
-            if (!DatabaseManager.isConnected()) {
-                DatabaseManager.connect();
-            }
-            
-            // Add to database using the UPDATED DatabaseManager with sex and purok
-            DatabaseManager.addResident(name, sex, fullAddress, purok, contact, birthdate, status);
-            
+            DatabaseManager.addResident(name, sex, fullAddress, purok, contact, birthdate, status, pwd);
             return true;
             
         } catch (SQLException e) {
-            System.err.println("Database error while adding residence: " + e.getMessage());
-            e.printStackTrace();
+            System.err.println("Database error: " + e.getMessage());
             
-            // Try to reconnect and retry once
-            try {
-                DatabaseManager.connect();
-                // Retry the operation
-                String fullAddress = buildFullAddress(address, purok, houseNo);
-                String birthdate = calculateBirthdateFromAge(age);
-                DatabaseManager.addResident(name, sex, fullAddress, purok, "", birthdate, status);
-                return true;
-            } catch (SQLException retryError) {
-                System.err.println("Retry failed: " + retryError.getMessage());
-                return false;
+            if (e.getMessage().contains("UNIQUE constraint failed")) {
+                JOptionPane.showMessageDialog(null,
+                    "❌ DUPLICATE RESIDENT ❌\n\n" +
+                    "This resident already exists in the database!\n\n" +
+                    "A resident with the same:\n" +
+                    "• Name\n" +
+                    "• Birthdate\n" +
+                    "• Address\n\n" +
+                    "cannot be added again.\n\n" +
+                    "Please check your records.",
+                    "Duplicate Entry",
+                    JOptionPane.ERROR_MESSAGE);
+            } else {
+                JOptionPane.showMessageDialog(null,
+                    "Database error: " + e.getMessage(),
+                    "Error",
+                    JOptionPane.ERROR_MESSAGE);
             }
+            return false;
+            
         } catch (IllegalArgumentException e) {
             System.err.println("Validation error: " + e.getMessage());
+            JOptionPane.showMessageDialog(null,
+                e.getMessage(),
+                "Validation Error",
+                JOptionPane.ERROR_MESSAGE);
             return false;
         }
     }
     
-    /**
-     * Build full address from components
-     */
+    public boolean addResidenceWithPwd(String name, String age, String sex, 
+                                       String address, String purok, String status, 
+                                       String houseNo, boolean isPwd) {
+        try {
+            if (name == null || name.trim().isEmpty()) {
+                throw new IllegalArgumentException("Name is required");
+            }
+            
+            String fullAddress = buildFullAddress(address, purok, houseNo);
+            String birthdate = calculateBirthdateFromAge(age);
+            String contact = "";
+            String pwd = isPwd ? "Yes" : "No";
+            
+            DatabaseManager.addResident(name, sex, fullAddress, purok, contact, birthdate, status, pwd);
+            return true;
+            
+        } catch (SQLException e) {
+            System.err.println("Database error: " + e.getMessage());
+            
+            if (e.getMessage().contains("UNIQUE constraint failed")) {
+                JOptionPane.showMessageDialog(null,
+                    "❌ DUPLICATE RESIDENT ❌\n\n" +
+                    "This resident already exists in the database!\n\n" +
+                    "A resident with the same:\n" +
+                    "• Name\n" +
+                    "• Birthdate\n" +
+                    "• Address\n\n" +
+                    "cannot be added again.\n\n" +
+                    "Please check your records.",
+                    "Duplicate Entry",
+                    JOptionPane.ERROR_MESSAGE);
+            } else {
+                JOptionPane.showMessageDialog(null,
+                    "Database error: " + e.getMessage(),
+                    "Error",
+                    JOptionPane.ERROR_MESSAGE);
+            }
+            return false;
+            
+        } catch (IllegalArgumentException e) {
+            System.err.println("Validation error: " + e.getMessage());
+            JOptionPane.showMessageDialog(null,
+                e.getMessage(),
+                "Validation Error",
+                JOptionPane.ERROR_MESSAGE);
+            return false;
+        }
+    }
+    
     private String buildFullAddress(String address, String purok, String houseNo) {
         StringBuilder fullAddress = new StringBuilder();
-        
         if (houseNo != null && !houseNo.trim().isEmpty()) {
             fullAddress.append("House ").append(houseNo.trim());
         }
-        
         if (address != null && !address.trim().isEmpty()) {
             if (fullAddress.length() > 0) fullAddress.append(", ");
             fullAddress.append(address.trim());
         }
-        
         if (purok != null && !purok.trim().isEmpty()) {
             if (fullAddress.length() > 0) fullAddress.append(", ");
             fullAddress.append("Purok ").append(purok.trim());
         }
-        
-        // Add barangay if address is empty
         if (fullAddress.length() == 0) {
             fullAddress.append("San Miguel, Agoo, La Union");
         }
-        
         return fullAddress.toString();
     }
     
-    /**
-     * Calculate approximate birthdate from age
-     * Note: This is just an approximation. Better to use a date picker in the dialog
-     */
     private String calculateBirthdateFromAge(String ageStr) {
         try {
             int age = Integer.parseInt(ageStr);
-            java.time.LocalDate now = java.time.LocalDate.now();
-            java.time.LocalDate birthdate = now.minusYears(age);
-            return birthdate.toString(); // Returns YYYY-MM-DD format for SQLite
+            return java.time.LocalDate.now().minusYears(age).toString();
         } catch (NumberFormatException e) {
-            return "2000-01-01"; // Return default date if age is invalid
+            return "2000-01-01";
         }
     }
     
-    /**
-     * Validate all fields before submission
-     */
     public ValidationResult validateResidence(String name, String age, String sex,
                                               String address, String purok, 
                                               String status, String houseNo) {
@@ -169,27 +173,17 @@ public class AddResidenceService {
         return result;
     }
     
-    /**
-     * Inner class for validation results
-     */
     public static class ValidationResult {
         private StringBuilder errors = new StringBuilder();
         private boolean isValid = true;
         
         public void addError(String error) {
-            if (errors.length() > 0) {
-                errors.append("\n");
-            }
+            if (errors.length() > 0) errors.append("\n");
             errors.append("• ").append(error);
             isValid = false;
         }
         
-        public boolean isValid() {
-            return isValid;
-        }
-        
-        public String getErrorMessage() {
-            return errors.toString();
-        }
+        public boolean isValid() { return isValid; }
+        public String getErrorMessage() { return errors.toString(); }
     }
 }

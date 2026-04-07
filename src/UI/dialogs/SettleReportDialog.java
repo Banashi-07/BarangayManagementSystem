@@ -1,8 +1,8 @@
 package UI.dialogs;
 
-import database.Report;
+import database.DatabaseManager;
+import database.DatabaseManager.Report;
 import database.ResidentDAO;
-import service.Reportservice;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -394,7 +394,8 @@ public class SettleReportDialog extends JDialog {
         
         if (confirm == JOptionPane.YES_OPTION) {
             try {
-                Reportservice.settleReport(report.getId(), settlementDescription);
+                // FIXED: Call DatabaseManager.settleReport directly
+                DatabaseManager.settleReport(report.getId(), settlementDescription);
                 JOptionPane.showMessageDialog(this,
                     "✓ Report settled successfully!\n\n" +
                     "The report has been marked as Settled and the settlement\n" +

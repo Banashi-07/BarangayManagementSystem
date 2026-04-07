@@ -2,7 +2,6 @@ package UI.panels;
 
 import database.DatabaseManager;
 import service.StatisticsService;
-import service.Reportservice;
 import UI.components.OvalPanel;
 import UI.components.CircularButton;
 
@@ -10,6 +9,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
+import java.sql.SQLException;
 
 public class HomePanel extends JPanel {
 
@@ -302,36 +302,28 @@ public class HomePanel extends JPanel {
             private int householdCount = 0;
             private int pendingReportCount = 0;
             private int pwdCount = 0;
-            private int blotterCount = 0;
+            private int reportCount = 0;
 
             @Override
             protected Void doInBackground() throws Exception {
                 for (int retry = 0; retry < MAX_RETRIES; retry++) {
                     try {
-                        if (!DatabaseManager.isConnected()) {
-                            DatabaseManager.connect();
-                        }
+                        // Ensure database connection
+                        DatabaseManager.getConnection();
                         
-                        try {
-                            Reportservice.initializeReportsTable();
-                        } catch (Exception e) {
-                            System.err.println("Error initializing reports table (attempt " + (retry + 1) + "): " + e.getMessage());
-                            if (retry == MAX_RETRIES - 1) throw e;
-                            Thread.sleep(RETRY_DELAY_MS);
-                            continue;
-                        }
-                        
-                        StatisticsService.Stats stats = StatisticsService.getAllStats();
+                        // Get all statistics from DatabaseManager
+                        DatabaseManager.Statistics stats = DatabaseManager.getAllStatistics();
                         totalPopulation = stats.totalPopulation;
                         maleCount = stats.maleCount;
                         femaleCount = stats.femaleCount;
                         seniorCount = stats.seniorCount;
                         voterCount = stats.voterCount;
                         householdCount = stats.householdCount;
-                        blotterCount = stats.blotterCount;
+                        reportCount = stats.reportCount;
                         pwdCount = stats.pwdCount;
                         
-                        pendingReportCount = Reportservice.getReportCountByStatus("Pending");
+                        // Get pending report count from DatabaseManager
+                        pendingReportCount = DatabaseManager.getReportCountByStatus("Pending");
                         
                         System.out.println("=== Statistics Loaded Successfully ===");
                         System.out.println("Total Population: " + totalPopulation);
@@ -340,13 +332,13 @@ public class HomePanel extends JPanel {
                         System.out.println("Senior: " + seniorCount);
                         System.out.println("Voters: " + voterCount);
                         System.out.println("Households: " + householdCount);
-                        System.out.println("Blotters: " + blotterCount);
+                        System.out.println("Reports: " + reportCount);
                         System.out.println("PENDING Reports: " + pendingReportCount);
                         System.out.println("PWD Count: " + pwdCount);
                         
                         break;
                         
-                    } catch (Exception e) {
+                    } catch (SQLException e) {
                         System.err.println("Error loading statistics (attempt " + (retry + 1) + "): " + e.getMessage());
                         e.printStackTrace();
                         
@@ -360,7 +352,7 @@ public class HomePanel extends JPanel {
                             try {
                                 DatabaseManager.close();
                                 Thread.sleep(500);
-                                DatabaseManager.connect();
+                                DatabaseManager.getConnection();
                             } catch (Exception reconnectEx) {
                                 System.err.println("Reconnect failed: " + reconnectEx.getMessage());
                             }

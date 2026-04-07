@@ -6,6 +6,7 @@ import database.DatabaseManager;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
+import java.sql.SQLException;
 import java.time.LocalDate;
 
 /**
@@ -480,6 +481,29 @@ public class AddResidence extends JDialog {
             }
 
             dispose();
+            
+        } catch (SQLException ex) {
+            // Check for duplicate constraint violation
+            if (ex.getMessage().contains("UNIQUE constraint failed")) {
+                JOptionPane.showMessageDialog(this,
+                    "❌ DUPLICATE RESIDENT ❌\n\n" +
+                    "This resident already exists in the database!\n\n" +
+                    "A resident with the same:\n" +
+                    "• Name\n" +
+                    "• Birthdate\n" +
+                    "• Address\n\n" +
+                    "cannot be added again.\n\n" +
+                    "Please check your records.",
+                    "Duplicate Entry",
+                    JOptionPane.ERROR_MESSAGE);
+            } else {
+                JOptionPane.showMessageDialog(this,
+                    "Database error: " + ex.getMessage(),
+                    "Error",
+                    JOptionPane.ERROR_MESSAGE);
+            }
+            ex.printStackTrace();
+            
         } catch (Exception ex) {
             showError("Error adding resident: " + ex.getMessage());
             ex.printStackTrace();
