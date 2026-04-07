@@ -34,7 +34,6 @@ public class HomePanel extends JPanel {
         setLayout(null);
         setBackground(Color.WHITE);
         setPreferredSize(new Dimension(1280, 1100));
-        setMinimumSize(new Dimension(800, 600));
 
         // ===== Gradient Header Panel =====
         headPanel = new GradientPanel();
@@ -185,7 +184,7 @@ public class HomePanel extends JPanel {
     /**
      * Resize and reposition all components based on current panel size
      */
-    private void resizeComponents() {
+    public void resizeComponents() {
         int width = getWidth();
         int height = getHeight();
         
@@ -399,6 +398,14 @@ public class HomePanel extends JPanel {
             }
         };
         worker.execute();
+    }
+    
+    public void forceRefreshLayout() {
+        SwingUtilities.invokeLater(() -> {
+            resizeComponents();
+            revalidate();
+            repaint();
+        });
     }
     
     public void refreshStatistics() {

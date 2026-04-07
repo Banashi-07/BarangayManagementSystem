@@ -9,11 +9,14 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.awt.event.WindowStateListener;
 import java.sql.SQLException;
 
 public class MainFrame extends JFrame {
 
     private HomePanel homePanel = new HomePanel();
+    private static final int NORMAL_WIDTH = 1280;
+    private static final int NORMAL_HEIGHT = 1100;
     
     public MainFrame() {
         // Initialize database connection
@@ -54,6 +57,11 @@ public class MainFrame extends JFrame {
         setTitle("Barangay Management System");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setResizable(true);
+        
+        // Set the normal size first (for when restored down)
+        setSize(NORMAL_WIDTH, NORMAL_HEIGHT);
+        
+        // Then maximize to full screen
         setExtendedState(JFrame.MAXIMIZED_BOTH);
         setLocationRelativeTo(null);
         
@@ -82,6 +90,33 @@ public class MainFrame extends JFrame {
         add(header, BorderLayout.NORTH);
         add(scrollPane, BorderLayout.CENTER);
 
+        // Handle window state changes (maximize/restore)
+        addWindowStateListener(new WindowStateListener() {
+            @Override
+            public void windowStateChanged(WindowEvent e) {
+                if (e.getNewState() == Frame.NORMAL) {
+                    // Window restored from maximized to normal size
+                    SwingUtilities.invokeLater(() -> {
+                        // Ensure window is at the correct normal size
+                        setSize(NORMAL_WIDTH, NORMAL_HEIGHT);
+                        setLocationRelativeTo(null);
+                        homePanel.resizeComponents();
+                        homePanel.revalidate();
+                        homePanel.repaint();
+                        scrollPane.getViewport().setViewPosition(new Point(0, 0));
+                    });
+                } else if (e.getNewState() == Frame.MAXIMIZED_BOTH) {
+                    // Window maximized
+                    SwingUtilities.invokeLater(() -> {
+                        homePanel.resizeComponents();
+                        homePanel.revalidate();
+                        homePanel.repaint();
+                        scrollPane.getViewport().setViewPosition(new Point(0, 0));
+                    });
+                }
+            }
+        });
+
         addWindowListener(new WindowAdapter() {
             @Override
             public void windowClosing(WindowEvent e) {
@@ -96,8 +131,7 @@ public class MainFrame extends JFrame {
 
         SwingUtilities.invokeLater(() -> {
             homePanel.refreshStatistics();
-            // FIX: Scroll to top of the page
-            scrollPane.getVerticalScrollBar().setValue(0);
+            scrollPane.getViewport().setViewPosition(new Point(0, 0));
         });
         
         setVisible(true);
