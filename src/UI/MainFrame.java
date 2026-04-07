@@ -13,10 +13,10 @@ import java.sql.SQLException;
 
 public class MainFrame extends JFrame {
 
-	private HomePanel homePanel = new HomePanel();
-	
+    private HomePanel homePanel = new HomePanel();
+    
     public MainFrame() {
-        // 1. Initialize database connection using getConnection()
+        // Initialize database connection
         try {
             DatabaseManager.getConnection();
             System.out.println("Database connected successfully");
@@ -24,7 +24,6 @@ public class MainFrame extends JFrame {
             System.err.println("Failed to connect to database: " + e.getMessage());
             e.printStackTrace();
             
-            // Show error dialog to user
             int response = JOptionPane.showConfirmDialog(
                 null,
                 "Failed to connect to the database.\n\nError: " + e.getMessage() + 
@@ -35,7 +34,6 @@ public class MainFrame extends JFrame {
             );
             
             if (response == JOptionPane.YES_OPTION) {
-                // Retry connection
                 try {
                     DatabaseManager.getConnection();
                 } catch (SQLException ex) {
@@ -58,19 +56,19 @@ public class MainFrame extends JFrame {
         setResizable(true);
         setExtendedState(JFrame.MAXIMIZED_BOTH);
         setLocationRelativeTo(null);
-
+        
         // Create main panel
         ContentPanel content = new ContentPanel(homePanel);
         MainPanel header = new MainPanel(content);
 
-        setLayout(new BorderLayout());
-        add(header, BorderLayout.NORTH);
-        add(content, BorderLayout.CENTER);
-
-        // Wrap in scroll pane
+        // Wrap content in scroll pane
         JScrollPane scrollPane = new JScrollPane(content);
         scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
-
+        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        scrollPane.getVerticalScrollBar().setUnitIncrement(30);
+        scrollPane.getVerticalScrollBar().setBlockIncrement(100);
+        
+        // Customize scroll bar appearance
         scrollPane.getVerticalScrollBar().setUI(new javax.swing.plaf.basic.BasicScrollBarUI() {
             @Override
             protected void configureScrollBarColors() {
@@ -79,9 +77,8 @@ public class MainFrame extends JFrame {
             }
         });
 
-        scrollPane.getVerticalScrollBar().setUnitIncrement(30);
-        scrollPane.getVerticalScrollBar().setBlockIncrement(100);
-
+        // Add components to frame
+        setLayout(new BorderLayout());
         add(header, BorderLayout.NORTH);
         add(scrollPane, BorderLayout.CENTER);
 
@@ -99,10 +96,11 @@ public class MainFrame extends JFrame {
 
         SwingUtilities.invokeLater(() -> {
             homePanel.refreshStatistics();
+            // FIX: Scroll to top of the page
+            scrollPane.getVerticalScrollBar().setValue(0);
         });
         
         setVisible(true);
-        pack();
     }
 
     public static void main(String[] args) {
